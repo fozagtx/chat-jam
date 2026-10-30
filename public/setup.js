@@ -12,7 +12,7 @@ let creditsUrl = null;
 if (!config.clientIdConfigured) {
   $('#clientNotice').classList.remove('hidden');
   connectButton.disabled = true;
-  connectButton.textContent = 'Twitch Client ID not set';
+  connectButton.textContent = 'Connect with Twitch';
 }
 if (!config.openAIEnabled) $('#vibeNotice').classList.remove('hidden');
 

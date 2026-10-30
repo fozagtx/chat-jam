@@ -1,4 +1,11 @@
-const ICONS = { kick: '◉', snare: '✳', hat: '✧', bass: '〰', melody: '♫', vibe: '✦' };
+const INSTRUMENTS = {
+  kick: 'kick',
+  snare: 'snare',
+  hat: 'hat',
+  bass: 'bass',
+  melody: 'melody',
+  vibe: 'vibe',
+};
 
 export class OverlayView {
   constructor() {
@@ -6,6 +13,7 @@ export class OverlayView {
     this.band = document.querySelector('#band');
     this.lastFlashAt = -Infinity;
     this.reducedMotion = false;
+
     for (let index = 0; index < 16; index += 1) {
       const cell = document.createElement('div');
       cell.className = 'step';
@@ -16,13 +24,17 @@ export class OverlayView {
 
   setMetadata({ key, scale, tempo }) {
     document.querySelector('#songInfo').textContent =
-      `${key} ${scale.toUpperCase()} · ${tempo} BPM`;
+      `[chat jam] ${key} ${scale} · ${tempo} bpm ·`;
   }
 
   setConnection(connected, label = '') {
-    const live = document.querySelector('#live');
-    live.classList.toggle('on', connected);
-    live.lastChild.textContent = connected ? ` LIVE · ${label}` : ' WAITING FOR TWITCH';
+    const status = document.querySelector('#live');
+    const description = connected
+      ? `Connected to Twitch${label ? ` as ${label}` : ''}`
+      : 'Waiting for Twitch';
+    status.classList.toggle('on', connected);
+    status.title = description;
+    status.setAttribute('aria-label', description);
   }
 
   showAudioStart(show, onStart) {
@@ -39,37 +51,52 @@ export class OverlayView {
     const leader = [...counts.entries()].sort(
       (left, right) => right[1] - left[1],
     )[0]?.[0];
-    document.querySelector('#count').textContent = `${layers.length} / 8`;
-    document.querySelector('#leader').textContent = leader
-      ? `♛ BAND LEADER · ${leader}`
-      : '';
-    this.band.replaceChildren(
-      ...layers.map((layer) => {
-        const tile = document.createElement('div');
-        tile.className = 'tile';
-        tile.dataset.id = layer.id;
-        tile.style.setProperty('--c', safeColor(layer.color));
-        const icon = document.createElement('span');
-        icon.className = 'icon';
-        icon.textContent = ICONS[layer.instrument] ?? ICONS.vibe;
-        const detail = document.createElement('div');
-        const person = document.createElement('div');
-        person.className = 'person';
-        person.textContent = layer.userName;
-        const instrument = document.createElement('div');
-        instrument.className = 'inst';
-        instrument.textContent = layer.instrument;
-        detail.append(person, instrument);
-        tile.append(icon, detail);
-        if (layer.userName === leader) {
-          const leaderTag = document.createElement('span');
-          leaderTag.className = 'leaderTag';
-          leaderTag.textContent = 'LEADER';
-          tile.append(leaderTag);
-        }
-        return tile;
-      }),
+    document.querySelector('#count').textContent = `${layers.length}/8`;
+    document.querySelector('#leader').textContent = leader ? `[leader] ${leader}` : '';
+    this.renderGrid(layers);
+
+    const slots = Array.from({ length: 8 }, (_, index) => {
+      const layer = layers[index];
+      if (!layer) {
+        const emptySlot = document.createElement('div');
+        emptySlot.className = 'band-slot';
+        emptySlot.setAttribute('aria-label', `Empty band slot ${index + 1}`);
+        const emptyDisc = document.createElement('div');
+        emptyDisc.className = 'empty-disc';
+        emptySlot.append(emptyDisc);
+        return emptySlot;
+      }
+
+      const slot = document.createElement('div');
+      slot.className = 'band-slot band-member';
+      slot.dataset.id = layer.id;
+      slot.style.setProperty('--disc-tint', safeColor(layer.color));
+      const disc = document.createElement('div');
+      disc.className = 'cd-disc';
+      disc.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span');
+      name.className = 'viewer-name';
+      name.textContent = layer.userName;
+      const instrument = document.createElement('span');
+      instrument.className = 'instrument-label';
+      instrument.textContent = INSTRUMENTS[layer.instrument] ?? 'sound';
+      slot.append(disc, name, instrument);
+      return slot;
+    });
+    this.band.replaceChildren(...slots);
+  }
+
+  renderGrid(layers) {
+    const activeCounts = Array.from(
+      { length: 16 },
+      (_, step) => layers.filter((layer) => layer.steps.includes(step)).length,
     );
+    for (const cell of this.grid.children) {
+      const count = activeCounts[Number(cell.dataset.i)];
+      cell.classList.toggle('has-sound', count > 0);
+      cell.dataset.layers = String(count);
+      cell.title = count ? `${count} layer${count === 1 ? '' : 's'}` : 'Empty step';
+    }
   }
 
   showBeat(step) {
@@ -79,16 +106,16 @@ export class OverlayView {
   }
 
   showLayerHit(layer) {
-    const tile = this.band.querySelector(`[data-id="${CSS.escape(layer.id)}"]`);
-    if (tile) {
-      tile.classList.add('hit');
-      setTimeout(() => tile.classList.remove('hit'), 110);
+    const slot = this.band.querySelector(`[data-id="${CSS.escape(layer.id)}"]`);
+    if (slot) {
+      slot.classList.add('hit');
+      setTimeout(() => slot.classList.remove('hit'), 260);
     }
     const now = performance.now();
     if (!this.reducedMotion && now - this.lastFlashAt >= 334) {
       this.lastFlashAt = now;
       const flash = document.querySelector('#flash');
-      flash.style.opacity = '0.32';
+      flash.style.opacity = '0.22';
       setTimeout(() => (flash.style.opacity = '0'), 70);
     }
   }
@@ -96,14 +123,14 @@ export class OverlayView {
   setCaption(layers, step) {
     const active = layers.filter((layer) => layer.steps.includes(step));
     const caption = active.length
-      ? `♪ ${active
+      ? active
           .map((layer) =>
             ['bass', 'melody', 'vibe'].includes(layer.instrument)
               ? `${layer.instrument} by ${layer.userName}`
               : layer.instrument,
           )
-          .join(' + ')}`
-      : '♪ Listening for the next layer';
+          .join(' · ')
+      : 'Listening for the next sound…';
     document.querySelector('#caption').textContent = caption;
   }
 
@@ -118,5 +145,7 @@ export class OverlayView {
 }
 
 function safeColor(color) {
-  return /^#[\da-f]{3,8}$/i.test(color) ? color : '#9b59ff';
+  return /^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(color)
+    ? color
+    : '#b7c4c6';
 }

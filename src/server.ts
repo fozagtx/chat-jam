@@ -15,6 +15,30 @@ const publicDirectory = path.resolve(here, '../../public');
 const app = express();
 app.use(express.json({ limit: '32kb' }));
 app.use(express.static(publicDirectory));
+app.get('/fonts/inter-tight-400.woff2', (_request, response) =>
+  response.sendFile(
+    path.resolve(
+      here,
+      '../../node_modules/@fontsource/inter-tight/files/inter-tight-latin-400-normal.woff2',
+    ),
+  ),
+);
+app.get('/fonts/inter-tight-500.woff2', (_request, response) =>
+  response.sendFile(
+    path.resolve(
+      here,
+      '../../node_modules/@fontsource/inter-tight/files/inter-tight-latin-500-normal.woff2',
+    ),
+  ),
+);
+app.get('/fonts/ibm-plex-mono-400.woff2', (_request, response) =>
+  response.sendFile(
+    path.resolve(
+      here,
+      '../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2',
+    ),
+  ),
+);
 
 const server = createServer(app);
 const webSockets = new WebSocketServer({ server, path: '/live' });

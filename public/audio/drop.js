@@ -6,9 +6,13 @@ export class DropSequence {
     this.credits = credits;
     this.names = names;
     this.hideTimer = null;
+    this.fadeTimer = null;
   }
 
   play(contributors, tempo) {
+    clearTimeout(this.hideTimer);
+    clearTimeout(this.fadeTimer);
+    this.root.classList.remove('fade-out');
     this.names.textContent = contributors.join(' · ') || 'THE CHAT';
     this.root.classList.add('show');
     this.title.textContent = 'THE BUILD';
@@ -20,7 +24,12 @@ export class DropSequence {
       this.credits.classList.add('visible');
     }, duration * 1_000);
     this.hideTimer = setTimeout(
-      () => this.root.classList.remove('show'),
+      () => {
+        this.root.classList.add('fade-out');
+        this.fadeTimer = setTimeout(() => {
+          this.root.classList.remove('show', 'fade-out');
+        }, 700);
+      },
       duration * 1_000 + 5_000,
     );
   }
