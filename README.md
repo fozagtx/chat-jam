@@ -2,6 +2,10 @@
 
 Chat Jam turns a Twitch chat into a live band. Viewers add synthesized layers; filling all eight slots starts The Drop and requests a Twitch clip. The OBS overlay shows the band and song grid, and the setup page can export four loops, the Drop, and contributor credits as a WAV and text file.
 
+![Chat Jam setup page](docs/screenshots/setup.png)
+
+![Chat Jam OBS overlay](docs/screenshots/overlay.png)
+
 ## Run it
 
 1. Clone the repo and run `npm install` with Node.js 22 or newer.
