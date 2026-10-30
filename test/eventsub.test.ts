@@ -31,7 +31,7 @@ describe('EventSub lifecycle routing', () => {
       onWelcome: (session) => subscribe(session.id),
     });
     routeEventSubMessage(keepalive, callbacks);
-    expect(subscribe).toHaveBeenCalledWith('session-id');
+    expect(subscribe).toHaveBeenCalledWith('AQoQILE98gtqShGmLD7AM6yJThAB');
     expect(callbacks.onKeepalive).toHaveBeenCalledOnce();
   });
 
@@ -40,9 +40,38 @@ describe('EventSub lifecycle routing', () => {
     routeEventSubMessage(reconnect, callbacks);
     routeEventSubMessage(revocation, callbacks);
     expect(callbacks.onReconnect).toHaveBeenCalledWith(
-      'wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=10',
+      'wss://eventsub.wss.twitch.tv?...',
     );
     expect(callbacks.onRevocation).toHaveBeenCalledWith(revocation.payload.subscription);
+  });
+
+  it('keeps the old socket until reconnect welcome and marks subscriptions migrated', () => {
+    const sockets: TestSocket[] = [];
+    const socketFactory = vi.fn(() => {
+      const socket = new TestSocket();
+      sockets.push(socket);
+      return socket;
+    });
+    const onWelcome = vi.fn();
+    const client = new EventSubClient(
+      {
+        onWelcome,
+        onNotification: vi.fn(),
+        onStatus: vi.fn(),
+        onRevocation: vi.fn(),
+      },
+      socketFactory,
+    );
+    client.connect();
+    sockets[0]!.message(welcome);
+    sockets[0]!.message(reconnect);
+    expect(socketFactory).toHaveBeenCalledWith(reconnect.payload.session.reconnect_url);
+    expect(sockets[0]!.closed).toBe(false);
+    sockets[1]!.message(welcome);
+    expect(onWelcome).toHaveBeenNthCalledWith(1, welcome.payload.session.id, false);
+    expect(onWelcome).toHaveBeenNthCalledWith(2, welcome.payload.session.id, true);
+    expect(sockets[0]!.closed).toBe(true);
+    client.stop();
   });
 
   it('reconnects when the welcome keepalive timeout expires', () => {
@@ -78,6 +107,7 @@ describe('EventSub lifecycle routing', () => {
 class TestSocket implements EventSubSocket {
   private messageHandler?: (data: Buffer) => void;
   private closeHandler?: () => void;
+  closed = false;
 
   on(event: 'message' | 'close' | 'error', listener: any): this {
     if (event === 'message') this.messageHandler = listener;
@@ -86,10 +116,12 @@ class TestSocket implements EventSubSocket {
   }
 
   close(): void {
+    this.closed = true;
     this.closeHandler?.();
   }
 
   terminate(): void {
+    this.closed = true;
     this.closeHandler?.();
   }
 

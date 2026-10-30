@@ -1,15 +1,16 @@
-// These lifecycle envelopes follow Twitch's documented EventSub WebSocket payload shapes.
+// Recorded lifecycle data-frame examples from Twitch's EventSub WebSocket docs:
+// https://dev.twitch.tv/docs/eventsub/handling-websocket-events/
 export const welcome = {
   metadata: {
-    message_id: 'example-welcome',
+    message_id: '96a3f3b5-5dec-4eed-908e-e11ee657416c',
     message_type: 'session_welcome',
-    message_timestamp: '2026-10-30T00:00:00.000Z',
+    message_timestamp: '2023-07-19T14:56:51.634234626Z',
   },
   payload: {
     session: {
-      id: 'session-id',
+      id: 'AQoQILE98gtqShGmLD7AM6yJThAB',
       status: 'connected',
-      connected_at: '2026-10-30T00:00:00.000Z',
+      connected_at: '2023-07-19T14:56:51.616329898Z',
       keepalive_timeout_seconds: 10,
       reconnect_url: null,
     },
@@ -18,45 +19,48 @@ export const welcome = {
 
 export const keepalive = {
   metadata: {
-    message_id: 'example-keepalive',
+    message_id: '84c1e79a-2a4b-4c13-ba0b-4312293e9308',
     message_type: 'session_keepalive',
-    message_timestamp: '2026-10-30T00:00:05.000Z',
+    message_timestamp: '2023-07-19T10:11:12.634234626Z',
   },
   payload: {},
 };
 
 export const reconnect = {
   metadata: {
-    message_id: 'example-reconnect',
+    message_id: '84c1e79a-2a4b-4c13-ba0b-4312293e9308',
     message_type: 'session_reconnect',
-    message_timestamp: '2026-10-30T00:00:06.000Z',
+    message_timestamp: '2022-11-18T09:10:11.634234626Z',
   },
   payload: {
     session: {
-      id: 'new-session-id',
+      id: 'AQoQexAWVYKSTIu4ec_2VAxyuhAB',
       status: 'reconnecting',
-      connected_at: '2026-10-30T00:00:00.000Z',
-      reconnect_url: 'wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=10',
+      keepalive_timeout_seconds: null,
+      reconnect_url: 'wss://eventsub.wss.twitch.tv?...',
+      connected_at: '2022-11-16T10:11:12.634234626Z',
     },
   },
 };
 
 export const revocation = {
   metadata: {
-    message_id: 'example-revocation',
+    message_id: 'f1c2a387-161a-49f9-a165-0f21d7a4e1c4',
     message_type: 'revocation',
-    message_timestamp: '2026-10-30T00:00:07.000Z',
+    message_timestamp: '2022-11-16T10:11:12.634234626Z',
+    subscription_type: 'channel.follow',
+    subscription_version: '1',
   },
   payload: {
     subscription: {
-      id: 'subscription-id',
+      id: 'f1c2a387-161a-49f9-a165-0f21d7a4e1c4',
       status: 'authorization_revoked',
-      type: 'channel.chat.message',
+      type: 'channel.follow',
       version: '1',
-      condition: { broadcaster_user_id: 'broadcaster-id', user_id: 'broadcaster-id' },
-      transport: { method: 'websocket', session_id: 'session-id' },
-      created_at: '2026-10-30T00:00:00.000Z',
-      cost: 0,
+      cost: 1,
+      condition: { broadcaster_user_id: '12826' },
+      transport: { method: 'websocket', session_id: 'AQoQexAWVYKSTIu4ec_2VAxyuhAB' },
+      created_at: '2022-11-16T10:11:12.464757833Z',
     },
   },
 };

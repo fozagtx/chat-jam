@@ -17,12 +17,16 @@ interface ChatJamOptions {
   getAccount(): ConnectedAccount | null;
 }
 
-interface TwitchEvent extends Record<string, any> {
+interface TwitchEvent {
   message?: { text?: string };
   chatter_user_id?: string;
   chatter_user_name?: string;
   badges?: Array<{ set_id?: string }>;
   color?: string;
+  from_broadcaster_user_name?: string;
+  user_name?: string;
+  bits?: number;
+  reward?: { title?: string };
 }
 
 export class ChatJam {

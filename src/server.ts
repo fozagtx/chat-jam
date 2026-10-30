@@ -65,13 +65,15 @@ app.post('/api/token', async (request, response) => {
     response.json({ ok: true, login: account.login });
     eventSub?.stop();
     eventSub = new EventSubClient({
-      onWelcome: async (sessionId) => {
+      onWelcome: async (sessionId, migratedSubscriptions) => {
         if (!account) return;
-        await subscribeToChannelEvents(
-          { clientId, accessToken: account.accessToken },
-          sessionId,
-          account.user_id,
-        );
+        if (!migratedSubscriptions) {
+          await subscribeToChannelEvents(
+            { clientId, accessToken: account.accessToken },
+            sessionId,
+            account.user_id,
+          );
+        }
         broadcast({ type: 'status', connected: true, login: account.login });
       },
       onNotification: chat.onNotification,

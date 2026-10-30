@@ -3,11 +3,11 @@ import type { RawData } from 'ws';
 
 export interface EventSubSession {
   id: string;
-  keepalive_timeout_seconds?: number;
+  keepalive_timeout_seconds?: number | null;
 }
 
 export interface EventSubHandlers {
-  onWelcome(sessionId: string): void | Promise<void>;
+  onWelcome(sessionId: string, migratedSubscriptions: boolean): void | Promise<void>;
   onNotification(event: unknown, subscriptionType: string): void;
   onStatus(connected: boolean, error?: string): void;
   onRevocation(subscription: unknown): void;
@@ -104,18 +104,19 @@ export class EventSubClient {
         onWelcome: (session) => {
           if (socket !== this.socket) return;
           this.keepaliveSeconds = session.keepalive_timeout_seconds ?? 10;
+          const migratedSubscriptions = this.reconnecting;
           this.reconnecting = false;
           this.previousSocket?.close();
           this.previousSocket = null;
           this.armKeepaliveTimeout();
           this.handlers.onStatus(true);
-          void Promise.resolve(this.handlers.onWelcome(session.id)).catch(
-            (error: unknown) => {
-              const message =
-                error instanceof Error ? error.message : 'EventSub subscription failed';
-              this.handlers.onStatus(false, message);
-            },
-          );
+          void Promise.resolve(
+            this.handlers.onWelcome(session.id, migratedSubscriptions),
+          ).catch((error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : 'EventSub subscription failed';
+            this.handlers.onStatus(false, message);
+          });
         },
         onKeepalive: () => this.armKeepaliveTimeout(),
         onReconnect: (reconnectUrl) => {
