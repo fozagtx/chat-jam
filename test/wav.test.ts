@@ -28,3 +28,25 @@ describe('WAV encoder', () => {
     expect(view.getInt16(48, true)).toBe(32_767);
   });
 });
+
+it('stores contributor credits in the RIFF LIST/INFO chunk', () => {
+  const audio = {
+    numberOfChannels: 1,
+    length: 3,
+    sampleRate: 22_050,
+    getChannelData: () => new Float32Array([-1, 0, 1]),
+  };
+  const output = encodeWav(audio, { INAM: 'Song', ICMT: 'Ada made this' });
+  const view = new DataView(output);
+  const text = (offset: number, length: number) =>
+    String.fromCharCode(...new Uint8Array(output, offset, length));
+
+  expect(text(36, 4)).toBe('LIST');
+  expect(text(44, 4)).toBe('INFO');
+  expect(text(48, 4)).toBe('INAM');
+  expect(text(62, 4)).toBe('ICMT');
+  expect(view.getUint32(4, true)).toBe(output.byteLength - 8);
+  const dataHeader = output.byteLength - 14;
+  expect(text(dataHeader, 4)).toBe('data');
+  expect(view.getUint32(dataHeader + 4, true)).toBe(6);
+});

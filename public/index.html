@@ -64,8 +64,14 @@
       </section>
       <div class="actions">
         <button id="save">Apply settings</button
-        ><button id="download">Download tonight’s song</button>
+        ><button id="download" disabled>Download tonight’s song</button>
       </div>
+      <p id="downloadHint" class="download-hint">
+        Nothing to download yet — chat hasn’t added a sound
+      </p>
+      <a id="creditsDownload" class="credits-download hidden" download="credits.txt">
+        Download credits.txt
+      </a>
       <p id="status" class="status">Not connected to Twitch</p>
       <p class="links">
         <a href="/overlay" target="_blank">Open overlay ↗</a> · Commands: !kick !snare

@@ -164,3 +164,18 @@ code {
   margin: 0;
   accent-color: var(--pink);
 }
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.download-hint {
+  margin: 12px 0 4px;
+  color: #ffdc9e;
+  font-size: 13px;
+}
+.credits-download {
+  display: inline-block;
+  margin: 4px 0 8px;
+  color: var(--cyan);
+  font-size: 13px;
+}

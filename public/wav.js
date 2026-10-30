@@ -1,30 +1,72 @@
-export function encodeWav(buffer) {
-  const channels = buffer.numberOfChannels,
-    length = buffer.length,
-    dataSize = length * channels * 2,
-    out = new ArrayBuffer(44 + dataSize),
-    v = new DataView(out);
-  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-  str(0, 'RIFF');
-  v.setUint32(4, 36 + dataSize, true);
-  str(8, 'WAVE');
-  str(12, 'fmt ');
-  v.setUint32(16, 16, true);
-  v.setUint16(20, 1, true);
-  v.setUint16(22, channels, true);
-  v.setUint32(24, buffer.sampleRate, true);
-  v.setUint32(28, buffer.sampleRate * channels * 2, true);
-  v.setUint16(32, channels * 2, true);
-  v.setUint16(34, 16, true);
-  str(36, 'data');
-  v.setUint32(40, dataSize, true);
-  let off = 44;
-  const arrays = Array.from({ length: channels }, (_, i) => buffer.getChannelData(i));
-  for (let i = 0; i < length; i++)
-    for (let c = 0; c < channels; c++) {
-      const s = Math.max(-1, Math.min(1, arrays[c][i]));
-      v.setInt16(off, s < 0 ? s * 32768 : s * 32767, true);
-      off += 2;
+export function encodeWav(buffer, info = {}) {
+  const channels = buffer.numberOfChannels;
+  const length = buffer.length;
+  const dataSize = length * channels * 2;
+  const infoChunks = Object.entries(info).map(([id, text]) => {
+    if (id.length !== 4) throw new Error('WAV INFO chunk IDs must be four characters');
+    const textBytes = new TextEncoder().encode(text);
+    const data = new Uint8Array(textBytes.length + 1);
+    data.set(textBytes);
+    return { id, data };
+  });
+  const listPayloadSize = infoChunks.length
+    ? 4 +
+      infoChunks.reduce(
+        (size, chunk) => size + 8 + chunk.data.length + (chunk.data.length % 2),
+        0,
+      )
+    : 0;
+  const listChunkSize = listPayloadSize ? 8 + listPayloadSize : 0;
+  const output = new ArrayBuffer(44 + listChunkSize + dataSize);
+  const view = new DataView(output);
+  const writeId = (offset, value) => {
+    [...value].forEach((character, index) => {
+      view.setUint8(offset + index, character.charCodeAt(0));
+    });
+  };
+
+  writeId(0, 'RIFF');
+  view.setUint32(4, output.byteLength - 8, true);
+  writeId(8, 'WAVE');
+  writeId(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * channels * 2, true);
+  view.setUint16(32, channels * 2, true);
+  view.setUint16(34, 16, true);
+
+  let offset = 36;
+  if (listPayloadSize) {
+    writeId(offset, 'LIST');
+    view.setUint32(offset + 4, listPayloadSize, true);
+    writeId(offset + 8, 'INFO');
+    offset += 12;
+    for (const chunk of infoChunks) {
+      writeId(offset, chunk.id);
+      view.setUint32(offset + 4, chunk.data.length, true);
+      new Uint8Array(output, offset + 8, chunk.data.length).set(chunk.data);
+      offset += 8 + chunk.data.length;
+      if (chunk.data.length % 2) {
+        view.setUint8(offset, 0);
+        offset += 1;
+      }
     }
-  return out;
+  }
+
+  writeId(offset, 'data');
+  view.setUint32(offset + 4, dataSize, true);
+  offset += 8;
+  const channelData = Array.from({ length: channels }, (_, index) =>
+    buffer.getChannelData(index),
+  );
+  for (let frame = 0; frame < length; frame += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][frame]));
+      view.setInt16(offset, sample < 0 ? sample * 32_768 : sample * 32_767, true);
+      offset += 2;
+    }
+  }
+  return output;
 }
