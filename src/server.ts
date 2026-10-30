@@ -71,6 +71,7 @@ const chat = new ChatJam({
 
 app.get('/api/config', (_request, response) => {
   response.json({
+    clientId,
     clientIdConfigured: Boolean(clientId),
     openAIEnabled: Boolean(process.env.OPENAI_API_KEY),
     ...song.settings,
