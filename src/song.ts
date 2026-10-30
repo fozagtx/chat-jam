@@ -5,6 +5,7 @@ export interface SongSettings {
   scale: string;
   tempo: number;
   volume: number;
+  reducedMotion: boolean;
 }
 
 export class Song {
@@ -16,6 +17,7 @@ export class Song {
     scale: 'major',
     tempo: 100,
     volume: 0.7,
+    reducedMotion: false,
   };
 
   get layers(): Layer[] {
@@ -51,6 +53,9 @@ export class Song {
     const tempo = Number(input.tempo);
     if (Number.isFinite(tempo)) {
       this.currentSettings.tempo = Math.min(180, Math.max(60, tempo));
+    }
+    if (typeof input.reducedMotion === 'boolean') {
+      this.currentSettings.reducedMotion = input.reducedMotion;
     }
     const volume = Number(input.volume);
     if (Number.isFinite(volume)) {

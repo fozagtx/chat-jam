@@ -148,3 +148,19 @@ a {
 code {
   font: 12px 'DM Mono';
 }
+
+.check-control {
+  display: flex !important;
+  align-items: center;
+  align-self: end;
+  gap: 10px !important;
+  min-height: 42px;
+  color: var(--ink) !important;
+  cursor: pointer;
+}
+.check-control input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--pink);
+}

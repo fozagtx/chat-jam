@@ -51,6 +51,7 @@ for (const [id, val] of [
   ['volume', Math.round(cfg.volume * 100)],
 ])
   $('#' + id).value = val;
+$('#reducedMotion').checked = Boolean(cfg.reducedMotion);
 const show = () => {
   $('#tempoVal').textContent = $('#tempo').value;
   $('#volumeVal').textContent = $('#volume').value + '%';
@@ -62,6 +63,7 @@ $('#save').onclick = async () => {
     ['key', 'scale', 'tempo'].map((id) => [id, $('#' + id).value]),
   );
   d.volume = Number($('#volume').value) / 100;
+  d.reducedMotion = $('#reducedMotion').checked;
   await fetch('/api/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

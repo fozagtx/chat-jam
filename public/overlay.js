@@ -1,3 +1,4 @@
+import { shouldReduceMotion } from './reduced-motion.js';
 import { AudioEngine } from './audio/audio-engine.js';
 import { noteFrequency } from './audio/synth.js';
 import { LookaheadScheduler } from './audio/scheduler.js';
@@ -29,6 +30,19 @@ const drop = new DropSequence({
 });
 
 view.setMetadata(initial);
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let reducedMotionPreference = Boolean(initial.reducedMotion);
+const applyReducedMotion = () => {
+  view.setReducedMotion(
+    shouldReduceMotion({
+      setting: reducedMotionPreference,
+      search: location.search,
+      systemPreference: reducedMotionQuery.matches,
+    }),
+  );
+};
+applyReducedMotion();
+reducedMotionQuery.addEventListener('change', applyReducedMotion);
 engine.setVolume(initial.volume);
 if (!initial.openAIEnabled) {
   view.showNotice('!vibe is off — OPENAI_API_KEY is not set');
@@ -55,6 +69,8 @@ connectOverlaySocket(
       view.renderLayers(layers);
     } else if (message.type === 'settings') {
       tempo = message.tempo;
+      reducedMotionPreference = Boolean(message.reducedMotion);
+      applyReducedMotion();
       engine.setVolume(message.volume);
       view.setMetadata(message);
     } else if (message.type === 'drop') {

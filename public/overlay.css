@@ -25,11 +25,13 @@ body {
   overflow: hidden;
 }
 header {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
-  justify-content: space-between;
+  column-gap: clamp(16px, 2vw, 32px);
 }
 .logo {
+  white-space: nowrap;
   font-size: 22px;
   letter-spacing: 0.15em;
   color: #ff5aa4;
@@ -42,6 +44,8 @@ header {
   font: 12px monospace;
   color: #77e9e0;
   letter-spacing: 0.16em;
+  min-width: 0;
+  text-align: center;
 }
 .song span {
   display: block;
@@ -49,11 +53,14 @@ header {
   font-size: 17px;
   letter-spacing: 0.08em;
   margin-top: 7px;
+  white-space: nowrap;
 }
 #live {
   font: 12px monospace;
   color: #d6cee3;
   letter-spacing: 0.1em;
+  white-space: nowrap;
+  text-align: right;
 }
 #live i {
   display: inline-block;
@@ -228,14 +235,6 @@ header {
   font: 13px monospace;
   color: #ffc45e;
 }
-#motion {
-  position: absolute;
-  right: 25px;
-  top: 25px;
-  background: #171225aa;
-  padding: 8px 12px;
-  font: 11px monospace;
-}
 body.reduced .step,
 body.reduced .tile {
   transition: none;
@@ -276,4 +275,25 @@ body.reduced #flash {
 }
 #drop .credits.visible {
   opacity: 1;
+}
+
+@media (max-width: 800px) {
+  header {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    row-gap: 14px;
+  }
+  .song {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: left;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step,
+  .tile {
+    transition: none;
+  }
+  #flash {
+    display: none;
+  }
 }

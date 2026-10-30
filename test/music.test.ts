@@ -77,6 +77,12 @@ describe('eight-layer FIFO and Drop state', () => {
     expect(addLayer(layers, layers[0]!)[0]?.id).toBe('2');
   });
 
+  it('persists reduced-motion preference in server settings', () => {
+    const song = new Song();
+    expect(song.settings.reducedMotion).toBe(false);
+    expect(song.updateSettings({ reducedMotion: true }).reducedMotion).toBe(true);
+  });
+
   it('triggers the Drop on first fill and re-arms it after reset', () => {
     const song = new Song();
     const layer: Layer = {

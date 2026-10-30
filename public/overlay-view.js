@@ -12,9 +12,6 @@ export class OverlayView {
       cell.dataset.i = String(index);
       this.grid.append(cell);
     }
-    document
-      .querySelector('#motion')
-      .addEventListener('click', () => this.toggleMotion());
   }
 
   setMetadata({ key, scale, tempo }) {
@@ -114,12 +111,9 @@ export class OverlayView {
     document.querySelector('#notice').textContent = text;
   }
 
-  toggleMotion() {
-    this.reducedMotion = !this.reducedMotion;
-    document.body.classList.toggle('reduced', this.reducedMotion);
-    document.querySelector('#motion').textContent = this.reducedMotion
-      ? '◉ Motion reduced'
-      : '◉ Reduce motion';
+  setReducedMotion(enabled) {
+    this.reducedMotion = enabled;
+    document.body.classList.toggle('reduced', enabled);
   }
 }
 
