@@ -1,29 +1,108 @@
 import express from 'express';
 import { createServer } from 'node:http';
-import { WebSocketServer, WebSocket } from 'ws';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { WebSocket, WebSocketServer } from 'ws';
 import { clientId, PORT } from './config.js';
-import { addLayer, parseCommand, RateLimiter, snapNote, noteForDegree, type Layer, type Instrument } from './music.js';
-const here=path.dirname(fileURLToPath(import.meta.url));
-const app=express(); app.use(express.json({limit:'32kb'})); app.use(express.static(path.resolve(here,'../../public')));
-const server=createServer(app);const wss=new WebSocketServer({server,path:'/live'});let token='', broadcasterId='', login='', eventSocket:WebSocket|null=null, sessionId='', reconnecting=false;
-let layers:Layer[]=[], key='C', scale='major', tempo=100, volume=0.7;const limiter=new RateLimiter();
-function send(event:Record<string,unknown>){const payload=JSON.stringify(event);for(const ws of wss.clients)if(ws.readyState===WebSocket.OPEN)ws.send(payload);}
-app.get('/',(_req,res)=>res.sendFile(path.resolve(here,'../../public/index.html')));
-app.get('/overlay',(_req,res)=>res.sendFile(path.resolve(here,'../../public/overlay.html')));
-app.get('/api/config',(_req,res)=>res.json({clientIdConfigured:Boolean(clientId),openAIEnabled:Boolean(process.env.OPENAI_API_KEY),key,scale,tempo,volume,connected:Boolean(token),login,layers}));
-app.post('/api/token',async(req,res)=>{const candidate=String(req.body?.access_token||'');if(!candidate)return res.status(400).json({error:'Missing token'});try{const v=await fetch('https://id.twitch.tv/oauth2/validate',{headers:{Authorization:`OAuth ${candidate}`}});if(!v.ok)return res.status(401).json({error:'Twitch rejected this token'});const data=await v.json() as {client_id:string;user_id:string;login:string;scopes:string[]};if(data.client_id!==clientId)return res.status(401).json({error:'Token belongs to another Twitch app'});token=candidate;broadcasterId=data.user_id;login=data.login;res.json({ok:true,login});connectEventSub();}catch{res.status(502).json({error:'Could not validate Twitch token'});}});
-app.post('/api/settings',(req,res)=>{if(req.body?.key)key=String(req.body.key);if(req.body?.scale)scale=String(req.body.scale);if(Number.isFinite(+req.body?.tempo))tempo=Math.min(180,Math.max(60,+req.body.tempo));if(Number.isFinite(+req.body?.volume))volume=Math.min(1,Math.max(0,+req.body.volume));send({type:'settings',key,scale,tempo,volume});res.json({ok:true});});
-app.get('/api/song',(_req,res)=>res.json({layers,key,scale,tempo}));
-async function subscribe(type:string,version:string,condition:Record<string,string>){if(!sessionId||!token)return;await fetch('https://api.twitch.tv/helix/eventsub/subscriptions',{method:'POST',headers:{'Client-ID':clientId,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({type,version,condition,transport:{method:'websocket',session_id:sessionId}})});}
-async function subscribeAll(){const b={broadcaster_user_id:broadcasterId};await Promise.all([subscribe('channel.chat.message','1',{...b,user_id:broadcasterId}),subscribe('channel.raid','1',{to_broadcaster_user_id:broadcasterId}),subscribe('channel.subscribe','1',b),subscribe('channel.cheer','1',b),subscribe('channel.channel_points_custom_reward_redemption.add','1',b)]);}
-function connectEventSub(url='wss://eventsub.wss.twitch.tv/ws'){const ws=new WebSocket(url);eventSocket=ws;ws.on('message',async raw=>{try{const msg=JSON.parse(raw.toString()) as any;const type=msg.metadata?.message_type;const p=msg.payload;if(type==='session_welcome'){sessionId=p.session.id;reconnecting=false;await subscribeAll();send({type:'status',connected:true,login});}else if(type==='session_keepalive'){}else if(type==='session_reconnect'){reconnecting=true;connectEventSub(p.session.reconnect_url);}else if(type==='notification')handleNotification(p.event,msg.metadata.subscription_type);else if(type==='revocation'){send({type:'status',connected:false,error:'A Twitch permission was revoked'});}}catch{}});ws.on('close',()=>{if(eventSocket===ws&&!reconnecting&&token)setTimeout(()=>connectEventSub(),3000);});ws.on('error',()=>{});}
-function handleNotification(e:any,type:string){if(type==='channel.chat.message'){const m=parseCommand(e.message?.text||'');if(!m)return;const u=e.chatter_user_id,name=e.chatter_user_name||'viewer';if(m.kind==='reset'){const badges=e.badges||[];if(!badges.some((b:any)=>['broadcaster','moderator'].includes(b.set_id)))return;layers=[];send({type:'reset'});return;}if(!limiter.allow(u,Date.now(),m.kind==='vibe')){send({type:'slowdown',userId:u});return;}if(m.kind==='vibe'){void createVibe(m.text,u,name,e.color||'#9b59ff');return;}const layer:Layer={id:crypto.randomUUID(),userId:u,userName:name,color:e.color||'#9b59ff',instrument:m.instrument,steps:m.pattern,notes:m.notes?.map(n=>`${snapNote(n,key,scale)}4`)||(m.instrument==='bass'?m.pattern.map((_,i)=>noteForDegree(key,scale,i,2)):undefined),createdAt:Date.now()};addNewLayer(layer);return;}
- if(type==='channel.raid'){send({type:'hype',kind:'raid',name:e.from_broadcaster_user_name});return;}if(type==='channel.subscribe'){send({type:'hype',kind:'sub',name:e.user_name});return;}if(type==='channel.cheer'){send({type:'hype',kind:'cheer',name:e.user_name,bits:e.bits});return;}if(type==='channel.channel_points_custom_reward_redemption.add'&&String(e.reward?.title).toLowerCase()==='drop the beat')void triggerDrop();}
-let dropped=false;function addNewLayer(layer:Layer){layers=addLayer(layers,layer);send({type:'layer',layer,layers});if(layers.length===8&&!dropped){dropped=true;void triggerDrop();}}
-async function triggerDrop(){send({type:'drop',layers,tempo});const clipDelay=4*4*60/tempo*1000;setTimeout(async()=>{if(token&&broadcasterId)try{await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}`,{method:'POST',headers:{'Client-ID':clientId,Authorization:`Bearer ${token}`}});}catch{}},clipDelay);}
-async function createVibe(text:string,userId:string,userName:string,color:string){const keyValue=process.env.OPENAI_API_KEY;if(!keyValue){send({type:'notice',text:'!vibe is off — OPENAI_API_KEY is not set'});return;}try{const mod=await fetch('https://api.openai.com/v1/moderations',{method:'POST',headers:{Authorization:`Bearer ${keyValue}`,'Content-Type':'application/json'},body:JSON.stringify({input:text})});const md=await mod.json() as any;if(md.results?.[0]?.flagged)return;const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${keyValue}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini',input:`Create a musical pattern for this mood: ${text}`,text:{format:{type:'json_schema',name:'music_layer',strict:true,schema:{type:'object',properties:{instrument:{type:'string',enum:['bass','melody']},steps:{type:'array',items:{type:'integer',minimum:0,maximum:15},minItems:16,maxItems:16},degrees:{type:'array',items:{type:'integer',minimum:0,maximum:6},minItems:16,maxItems:16}},required:['instrument','steps','degrees'],additionalProperties:false}}}})});const out=await r.json() as any;const content=out.output?.flatMap((x:any)=>x.content||[]).find((x:any)=>x.type==='output_text')?.text;if(!content)return;const v=JSON.parse(content) as {instrument:Instrument;steps:number[];degrees:number[]};if(!['bass','melody'].includes(v.instrument))return;addNewLayer({id:crypto.randomUUID(),userId,userName,color,instrument:'vibe',steps:v.steps,degrees:v.degrees,notes:v.degrees.map(d=>noteForDegree(key,scale,d,3)),createdAt:Date.now()});}catch{send({type:'notice',text:'!vibe could not create a layer'});}}
-app.get('/api/audio-export',(_req,res)=>res.status(501).json({error:'Use the setup page offline renderer'}));
-server.listen(PORT,()=>console.log(`Chat Jam listening on http://localhost:${PORT}`));
-app.get('/callback',(_req,res)=>res.sendFile(path.resolve(here,'../../public/index.html')));
+import { Song } from './song.js';
+import { ChatJam } from './chat.js';
+import { EventSubClient } from './twitch/eventsub.js';
+import { subscribeToChannelEvents } from './twitch/helix.js';
+import { validateTwitchToken, type ConnectedAccount } from './twitch/oauth.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const publicDirectory = path.resolve(here, '../../public');
+const app = express();
+app.use(express.json({ limit: '32kb' }));
+app.use(express.static(publicDirectory));
+
+const server = createServer(app);
+const webSockets = new WebSocketServer({ server, path: '/live' });
+const song = new Song();
+let account: ConnectedAccount | null = null;
+let eventSub: EventSubClient | null = null;
+
+function broadcast(event: Record<string, unknown>): void {
+  const message = JSON.stringify(event);
+  for (const socket of webSockets.clients) {
+    if (socket.readyState === WebSocket.OPEN) socket.send(message);
+  }
+}
+
+app.get('/', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'index.html')),
+);
+app.get('/callback', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'index.html')),
+);
+app.get('/overlay', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'overlay.html')),
+);
+const chat = new ChatJam({
+  song,
+  clientId,
+  broadcast,
+  getAccount: () => account,
+});
+
+app.get('/api/config', (_request, response) => {
+  response.json({
+    clientIdConfigured: Boolean(clientId),
+    openAIEnabled: Boolean(process.env.OPENAI_API_KEY),
+    ...song.settings,
+    connected: Boolean(account),
+    login: account?.login ?? '',
+    layers: song.layers,
+    contributors: song.contributors,
+  });
+});
+app.post('/api/token', async (request, response) => {
+  const accessToken = String(request.body?.access_token ?? '');
+  if (!accessToken) return response.status(400).json({ error: 'Missing token' });
+  if (!clientId) return response.status(503).json({ error: 'Twitch Client ID not set' });
+  try {
+    account = await validateTwitchToken(accessToken, clientId);
+    response.json({ ok: true, login: account.login });
+    eventSub?.stop();
+    eventSub = new EventSubClient({
+      onWelcome: async (sessionId) => {
+        if (!account) return;
+        await subscribeToChannelEvents(
+          { clientId, accessToken: account.accessToken },
+          sessionId,
+          account.user_id,
+        );
+        broadcast({ type: 'status', connected: true, login: account.login });
+      },
+      onNotification: chat.onNotification,
+      onStatus: (connected, error) =>
+        broadcast({ type: 'status', connected, error, login: account?.login }),
+      onRevocation: () => undefined,
+    });
+    eventSub.connect();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Could not validate Twitch token';
+    response
+      .status(
+        message.includes('Twitch rejected') || message.includes('another Twitch app')
+          ? 401
+          : 502,
+      )
+      .json({ error: message });
+  }
+});
+app.post('/api/settings', (request, response) => {
+  const settings = song.updateSettings(request.body ?? {});
+  broadcast({ type: 'settings', ...settings });
+  response.json({ ok: true, ...settings });
+});
+app.get('/api/song', (_request, response) => {
+  response.json({
+    layers: song.layers,
+    contributors: song.contributors,
+    ...song.settings,
+  });
+});
+
+server.listen(PORT, () => console.log(`Chat Jam listening on http://localhost:${PORT}`));

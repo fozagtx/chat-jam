@@ -1,14 +1,127 @@
-const $=s=>document.querySelector(s),grid=$('#grid');for(let i=0;i<16;i++){const d=document.createElement('div');d.className='step';d.dataset.i=i;grid.append(d);}let layers=[],tempo=100,volume=.7,ctx=null,master=null,limiter=null,nextTime=0,step=0,lookTimer=null,reduce=false;const starts=new Map();const icons={kick:'◉',snare:'✳',hat:'✧',bass:'〰',melody:'♫',vibe:'✦'};function audio(){if(ctx)return;ctx=new AudioContext();master=ctx.createGain();master.gain.value=.501*volume;limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-8;limiter.knee.value=0;limiter.ratio.value=20;limiter.attack.value=.003;limiter.release.value=.12;master.connect(limiter).connect(ctx.destination);nextTime=ctx.currentTime+.1;lookTimer=setInterval(schedule,25);}
-function tone(freq,time,dur,wave,gain){if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type=wave;o.frequency.setValueAtTime(freq,time);g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(gain,time+.008);g.gain.exponentialRampToValueAtTime(.0001,time+dur);o.connect(g).connect(master);o.start(time);o.stop(time+dur+.01);}function noise(time,dur,gain){const n=ctx.createBufferSource(),b=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*dur),ctx.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;n.buffer=b;const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=2500;const g=ctx.createGain();g.gain.setValueAtTime(gain,time);g.gain.exponentialRampToValueAtTime(.0001,time+dur);n.connect(f).connect(g).connect(master);n.start(time);}
-function noteFrequency(name){const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];const match=name.match(/^([A-G](?:#|b)?)(-?\d+)$/i);if(!match)return 110;const pc=match[1].replace('Db','C#').replace('Eb','D#').replace('Gb','F#').replace('Ab','G#').replace('Bb','A#');const n=names.indexOf(pc.toUpperCase());return n<0?110:440*Math.pow(2,(n+12*(Number(match[2])+1)-69)/12);}
-function hit(l,t,current){if(l.instrument==='kick'){tone(120,t,.22,'sine',.7);tone(48,t,.24,'sine',.55);}else if(l.instrument==='snare'){noise(t,.15,.22);tone(190,t,.1,'triangle',.12);}else if(l.instrument==='hat'){noise(t,.045,.11);}else{const i=Math.max(0,l.steps.indexOf(current));const note=l.notes?.[i]||l.notes?.[i%l.notes.length||1]||'C3';tone(noteFrequency(note),t,.24,'triangle',.12);}}
-function schedule(){if(!ctx||ctx.state!=='running')return;const end=ctx.currentTime+.1;const dur=60/tempo/4;while(nextTime<end){const current=step%16;for(const l of layers)if(l.steps.includes(current)&&nextTime>=(starts.get(l.id)||0)){hit(l,nextTime,current);visualHit(l.id,current);}if(current%4===0){document.querySelectorAll('.step').forEach(x=>x.classList.toggle('active',Number(x.dataset.i)===current));caption(current);}nextTime+=dur;step++;}}
-function visualHit(id,s){const el=document.querySelector(`[data-id="${id}"]`);if(el){el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),110);}if(!reduce&&performance.now()-(visualHit.last||0)>334){visualHit.last=performance.now();$('#flash').style.opacity='.32';setTimeout(()=>$('#flash').style.opacity='0',70);}}
-function caption(s){const active=layers.filter(l=>l.steps.includes(s));$('#caption').textContent=active.length?`♪ ${active.map(l=>`${l.instrument}${l.instrument==='bass'||l.instrument==='melody'||l.instrument==='vibe'?` by ${l.userName}`:''}`).join(' + ')}`:'♪ Listening for the next layer';}
-function renderBand(){const leader=layers.reduce((m,l)=>{m[l.userName]=(m[l.userName]||0)+1;return m;},{});const top=Object.entries(leader).sort((a,b)=>b[1]-a[1])[0]?.[0];$('#count').textContent=`${layers.length} / 8`;$('#leader').textContent=top?`♛ BAND LEADER · ${top}`:'';$('#band').innerHTML=layers.map(l=>`<div class="tile" data-id="${l.id}" style="--c:${safeColor(l.color)}"><span class="icon">${icons[l.instrument]||icons.vibe}</span><div><div class="person">${escapeHtml(l.userName)}</div><div class="inst">${l.instrument}</div></div>${l.userName===top?'<span class="leaderTag">LEADER</span>':''}</div>`).join('');}
-function nextQuantizedTime(now,anchor,q){return anchor+Math.max(0,Math.ceil((now-anchor)/q))*q;}
-function safeColor(c){return /^#[\da-f]{3,8}$/i.test(c)?c:'#9b59ff'}function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function drop(list=layers){const names=[...new Set(list.map(x=>x.userName))];$('#names').textContent=names.join(' · ')||'THE CHAT';$('#drop').classList.add('show');if(ctx){const now=ctx.currentTime,bar=60/dropTempo*4,duration=bar*4;const osc=ctx.createOscillator(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(90,now);osc.frequency.exponentialRampToValueAtTime(900,now+duration);filter.type='lowpass';filter.frequency.setValueAtTime(180,now);filter.frequency.exponentialRampToValueAtTime(9000,now+duration);gain.gain.setValueAtTime(.001,now);gain.gain.linearRampToValueAtTime(.18,now+duration);gain.gain.setValueAtTime(.001,now+duration+.08);osc.connect(filter).connect(gain).connect(master);osc.start(now);osc.stop(now+duration+.1);tone(48,now+duration,.7,'sine',.8);noise(now+duration,.5,.4);setTimeout(()=>$('#drop').classList.remove('show'),duration*1000);}else setTimeout(()=>$('#drop').classList.remove('show'),7000);}
-$('#start').onclick=()=>{audio();ctx.resume();$('#start').classList.add('hidden')};$('#motion').onclick=()=>{reduce=!reduce;document.body.classList.toggle('reduced',reduce);$('#motion').textContent=reduce?'◉ Motion reduced':'◉ Reduce motion'};
-const initial=await fetch('/api/config').then(r=>r.json());layers=initial.layers||[];layers.forEach(l=>starts.set(l.id,0));tempo=initial.tempo;volume=initial.volume;$('#songInfo').textContent=`${initial.key} ${initial.scale.toUpperCase()} · ${tempo} BPM`;renderBand();audio();if(ctx.state==='suspended')$('#start').classList.remove('hidden');ctx.addEventListener('statechange',()=>$('#start').classList.toggle('hidden',ctx.state!=='suspended'));
-const socket=new WebSocket(`ws://${location.host}/live`);socket.onopen=()=>{$('#live').classList.add('on');$('#live').lastChild.textContent=' LIVE · CHAT JAM'};socket.onclose=()=>{$('#live').classList.remove('on');};socket.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='layer'){layers=m.layers;const l=m.layer;const q=60/tempo*(['kick','snare','hat'].includes(l.instrument)?1:4);starts.set(l.id,nextQuantizedTime(ctx.currentTime,nextTime,q));renderBand();}else if(m.type==='reset'){layers=[];renderBand();}else if(m.type==='settings'){tempo=m.tempo;volume=m.volume;master.gain.setTargetAtTime(.501*volume,ctx.currentTime,.04);$('#songInfo').textContent=`${m.key} ${m.scale.toUpperCase()} · ${tempo} BPM`;}else if(m.type==='drop')drop(m.layers,m.tempo);else if(m.type==='notice')$('#notice').textContent=m.text;else if(m.type==='slowdown')$('#notice').textContent='Slow down — one sound every 5 seconds';else if(m.type==='hype'){if(m.kind==='raid'){tone(880,ctx.currentTime,.7,'sawtooth',.22);$('#notice').textContent=`⚡ RAID FROM ${m.name}!`;noise(ctx.currentTime+.2,.7,.2);}else if(m.kind==='sub'){tone(523,ctx.currentTime,.6,'sine',.2);$('#notice').textContent=`✦ ${m.name} joined the band`;}else{noise(ctx.currentTime,.2,.25);tone(100,ctx.currentTime,.3,'sine',.4);$('#notice').textContent=`BITS! ${m.name||''}`;}}else if(m.type==='status')$('#live').lastChild.textContent=m.connected?` LIVE · ${m.login}`:' WAITING FOR TWITCH';};
+import { AudioEngine } from './audio/audio-engine.js';
+import { noteFrequency } from './audio/synth.js';
+import { LookaheadScheduler } from './audio/scheduler.js';
+import { DropSequence } from './audio/drop.js';
+import { OverlayView } from './overlay-view.js';
+import { connectOverlaySocket } from './socket.js';
+
+const view = new OverlayView();
+const initial = await fetch('/api/config').then((response) => response.json());
+let layers = initial.layers ?? [];
+let tempo = initial.tempo;
+const engine = new AudioEngine();
+const scheduler = new LookaheadScheduler({
+  engine,
+  getLayers: () => layers,
+  getTempo: () => tempo,
+  onStep: (step) => {
+    view.showBeat(step);
+    view.setCaption(layers, step);
+  },
+  onLayerHit: (layer) => view.showLayerHit(layer),
+});
+const drop = new DropSequence({
+  engine,
+  root: document.querySelector('#drop'),
+  title: document.querySelector('#drop .burst'),
+  credits: document.querySelector('#drop .credits'),
+  names: document.querySelector('#names'),
+});
+
+view.setMetadata(initial);
+engine.setVolume(initial.volume);
+if (!initial.openAIEnabled) {
+  view.showNotice('!vibe is off — OPENAI_API_KEY is not set');
+}
+view.renderLayers(layers);
+scheduler.start();
+const showStartButton = () => {
+  view.showAudioStart(engine.context.state === 'suspended', () => {
+    void engine.context.resume();
+  });
+};
+showStartButton();
+engine.context.addEventListener('statechange', showStartButton);
+
+connectOverlaySocket(
+  (message) => {
+    if (message.type === 'layer') {
+      layers = message.layers;
+      scheduler.addLayer(message.layer);
+      view.renderLayers(layers);
+    } else if (message.type === 'reset') {
+      layers = message.layers ?? [];
+      scheduler.reset();
+      view.renderLayers(layers);
+    } else if (message.type === 'settings') {
+      tempo = message.tempo;
+      engine.setVolume(message.volume);
+      view.setMetadata(message);
+    } else if (message.type === 'drop') {
+      drop.play(message.contributors ?? [], message.tempo ?? tempo);
+    } else if (message.type === 'notice') {
+      view.showNotice(message.text);
+    } else if (message.type === 'slowdown') {
+      view.showNotice('Slow down — one sound every 5 seconds');
+    } else if (message.type === 'hype') {
+      playHype(message, engine, view);
+    } else if (message.type === 'status') {
+      view.setConnection(message.connected, message.login ?? '');
+    }
+  },
+  (connected) => {
+    if (!connected) view.setConnection(false);
+  },
+);
+
+function playHype(message, audio, overlayView) {
+  const now = audio.context.currentTime;
+  const beat = 60 / tempo;
+  if (message.kind === 'raid') {
+    for (let subdivision = 0; subdivision < 8; subdivision += 1) {
+      const time = now + (subdivision * beat) / 2;
+      audio.voice(subdivision % 2 === 0 ? 'kick' : 'snare', time);
+      audio.tone(
+        noteFrequency(scaleNote(initial.key, initial.scale, subdivision, 4)),
+        time,
+        0.2,
+        'sawtooth',
+        0.1,
+      );
+    }
+    overlayView.showNotice(`⚡ RAID FROM ${message.name}!`);
+  } else if (message.kind === 'sub') {
+    for (let degree = 0; degree < 4; degree += 1) {
+      audio.tone(
+        noteFrequency(scaleNote(initial.key, initial.scale, degree * 2, 4)),
+        now + degree * beat,
+        beat * 0.8,
+        'sine',
+        0.2,
+      );
+    }
+    overlayView.showNotice(`✦ ${message.name} joined the band`);
+  } else {
+    for (let subdivision = 0; subdivision < 8; subdivision += 1) {
+      audio.voice(
+        subdivision % 2 === 0 ? 'snare' : 'kick',
+        now + (subdivision * beat) / 2,
+      );
+    }
+    overlayView.showNotice(`BITS! ${message.name ?? ''}`);
+  }
+}
+
+function scaleNote(key, scale, degree, octave) {
+  const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const aliases = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
+  const scales = {
+    major: [0, 2, 4, 5, 7, 9, 11],
+    minor: [0, 2, 3, 5, 7, 8, 10],
+    pentatonic: [0, 2, 4, 7, 9],
+    'minor pentatonic': [0, 3, 5, 7, 10],
+  };
+  const root = chromatic.indexOf(aliases[key] ?? key);
+  const intervals = scales[scale] ?? scales.major;
+  return `${chromatic[(root + intervals[degree % intervals.length]) % 12]}${octave}`;
+}
