@@ -137,6 +137,20 @@ live.onmessage = (message) => {
   } else if (event.type === 'reset') {
     lastCommand = 'song reset';
     setLayerCount(0);
+  } else if (
+    event.type === 'notice' &&
+    ['Clip saved', 'Clip failed', 'Go live to auto-clip the Drop'].includes(event.text)
+  ) {
+    $('#clipNotice').textContent = event.text;
+    $('#clipNotice').classList.remove('hidden');
+    const clipLink = $('#clipLink');
+    if (event.url) {
+      clipLink.href = event.url;
+      clipLink.classList.remove('hidden');
+    } else {
+      clipLink.removeAttribute('href');
+      clipLink.classList.add('hidden');
+    }
   }
   updateStatus();
 };

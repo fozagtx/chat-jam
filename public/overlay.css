@@ -138,6 +138,7 @@ button {
   margin-top: 12px;
 }
 .band-slot {
+  --disc-tint: #c9d9df;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -153,11 +154,17 @@ button {
   border-radius: 50%;
 }
 .empty-disc {
+  position: relative;
   border: 1px dashed rgba(25, 25, 25, 0.22);
   background: rgba(26, 26, 26, 0.018);
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  color: var(--muted);
+  font: 400 9px/1.2 var(--mono);
+  overflow-wrap: anywhere;
 }
 .cd-disc {
-  --disc-tint: #c9d9df;
   position: relative;
   background:
     radial-gradient(
@@ -168,15 +175,15 @@ button {
     ),
     conic-gradient(
       from 17deg,
-      color-mix(in srgb, #172022 72%, var(--disc-tint)),
-      color-mix(in srgb, #b8c7c8 74%, var(--disc-tint)) 12%,
-      color-mix(in srgb, #27b9c0 72%, var(--disc-tint)) 22%,
-      color-mix(in srgb, #e7e2c9 72%, var(--disc-tint)) 33%,
-      color-mix(in srgb, #425860 72%, var(--disc-tint)) 47%,
-      color-mix(in srgb, #e4e7df 72%, var(--disc-tint)) 58%,
-      color-mix(in srgb, #75b9b9 72%, var(--disc-tint)) 73%,
-      color-mix(in srgb, #29383c 72%, var(--disc-tint)) 88%,
-      color-mix(in srgb, #172022 72%, var(--disc-tint))
+      color-mix(in srgb, #172022 45%, var(--disc-tint)),
+      color-mix(in srgb, #b8c7c8 48%, var(--disc-tint)) 12%,
+      color-mix(in srgb, #27b9c0 45%, var(--disc-tint)) 22%,
+      color-mix(in srgb, #e7e2c9 45%, var(--disc-tint)) 33%,
+      color-mix(in srgb, #425860 45%, var(--disc-tint)) 47%,
+      color-mix(in srgb, #e4e7df 45%, var(--disc-tint)) 58%,
+      color-mix(in srgb, #75b9b9 45%, var(--disc-tint)) 73%,
+      color-mix(in srgb, #29383c 45%, var(--disc-tint)) 88%,
+      color-mix(in srgb, #172022 45%, var(--disc-tint))
     );
   box-shadow:
     inset 0 0 0 3px #191919,
@@ -219,7 +226,8 @@ button {
   overflow: hidden;
   padding: 3px 7px;
   border-radius: 9999px;
-  background: var(--quiet);
+  border: 1px solid color-mix(in srgb, var(--disc-tint) 58%, #fff);
+  background: color-mix(in srgb, var(--disc-tint) 22%, #fff);
   color: var(--ink);
   font-size: 11px;
   line-height: 1.15;

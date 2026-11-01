@@ -5,6 +5,28 @@ export interface TwitchCredentials {
   accessToken: string;
 }
 
+export interface TwitchClip {
+  id: string;
+  edit_url: string;
+}
+
+export interface CreateClipResponse {
+  data: TwitchClip[];
+}
+
+export class HelixError extends Error {
+  constructor(public readonly status: number) {
+    super(`Helix request failed (${status})`);
+    this.name = 'HelixError';
+  }
+}
+
+export function clipFailureNotice(error: unknown): string {
+  return error instanceof HelixError && error.status === 404
+    ? 'Go live to auto-clip the Drop'
+    : 'Clip failed';
+}
+
 export async function subscribeToChannelEvents(
   credentials: TwitchCredentials,
   sessionId: string,
@@ -55,7 +77,7 @@ export async function subscribeToChannelEvents(
 export async function createClip(
   credentials: TwitchCredentials,
   broadcasterId: string,
-): Promise<void> {
+): Promise<CreateClipResponse> {
   const response = await fetch(`${HELIX}/clips?broadcaster_id=${broadcasterId}`, {
     method: 'POST',
     headers: {
@@ -64,6 +86,7 @@ export async function createClip(
     },
   });
   if (!response.ok) {
-    throw new Error(`Create Clip failed (${response.status})`);
+    throw new HelixError(response.status);
   }
+  return (await response.json()) as CreateClipResponse;
 }

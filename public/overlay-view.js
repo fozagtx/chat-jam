@@ -6,6 +6,7 @@ const INSTRUMENTS = {
   melody: 'melody',
   vibe: 'vibe',
 };
+const EMPTY_SLOT_COMMANDS = ['!kick', '!snare', '!hat', '!bass 1', '!melody C E G'];
 
 export class OverlayView {
   constructor() {
@@ -60,9 +61,14 @@ export class OverlayView {
       if (!layer) {
         const emptySlot = document.createElement('div');
         emptySlot.className = 'band-slot';
-        emptySlot.setAttribute('aria-label', `Empty band slot ${index + 1}`);
+        const command = EMPTY_SLOT_COMMANDS[index % EMPTY_SLOT_COMMANDS.length];
+        emptySlot.setAttribute(
+          'aria-label',
+          `Empty band slot ${index + 1}, type ${command}`,
+        );
         const emptyDisc = document.createElement('div');
         emptyDisc.className = 'empty-disc';
+        emptyDisc.textContent = command;
         emptySlot.append(emptyDisc);
         return emptySlot;
       }

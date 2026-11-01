@@ -7,7 +7,7 @@ import {
 } from './music.js';
 import { isModeratorOrBroadcaster, Song } from './song.js';
 import { createVibeLayer } from './vibe.js';
-import { createClip } from './twitch/helix.js';
+import { clipFailureNotice, createClip } from './twitch/helix.js';
 import type { ConnectedAccount } from './twitch/oauth.js';
 
 interface ChatJamOptions {
@@ -153,11 +153,25 @@ export class ChatJam {
     const clipDelay = (16 * 60 * 1_000) / settings.tempo;
     setTimeout(() => {
       const account = this.options.getAccount();
-      if (!account) return;
+      if (!account) {
+        this.options.broadcast({ type: 'notice', text: 'Clip failed' });
+        return;
+      }
       void createClip(
         { clientId: this.options.clientId, accessToken: account.accessToken },
         account.user_id,
-      ).catch(() => undefined);
+      )
+        .then((clip) => {
+          const editUrl = clip.data[0]?.edit_url;
+          this.options.broadcast({
+            type: 'notice',
+            text: 'Clip saved',
+            ...(editUrl ? { url: editUrl } : {}),
+          });
+        })
+        .catch((error: unknown) => {
+          this.options.broadcast({ type: 'notice', text: clipFailureNotice(error) });
+        });
     }, clipDelay);
   }
 }
