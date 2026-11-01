@@ -63,6 +63,9 @@ describe('EventSub lifecycle routing', () => {
       socketFactory,
     );
     client.connect();
+    expect(socketFactory).toHaveBeenCalledWith(
+      'wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30',
+    );
     sockets[0]!.message(welcome);
     sockets[0]!.message(reconnect);
     expect(socketFactory).toHaveBeenCalledWith(reconnect.payload.session.reconnect_url);
@@ -95,9 +98,62 @@ describe('EventSub lifecycle routing', () => {
     sockets[0]!.message(welcome);
     vi.advanceTimersByTime(9_000);
     sockets[0]!.message(keepalive);
-    vi.advanceTimersByTime(9_000);
+    vi.advanceTimersByTime(14_000);
     expect(socketFactory).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(1_000);
+    expect(socketFactory).toHaveBeenCalledTimes(2);
+    client.stop();
+    vi.useRealTimers();
+  });
+
+  it('does not reconnect when keepalive arrives at the advertised timeout boundary', () => {
+    vi.useFakeTimers();
+    const sockets: TestSocket[] = [];
+    const socketFactory = vi.fn(() => {
+      const socket = new TestSocket();
+      sockets.push(socket);
+      return socket;
+    });
+    const client = new EventSubClient(
+      {
+        onWelcome: vi.fn(),
+        onNotification: vi.fn(),
+        onStatus: vi.fn(),
+        onRevocation: vi.fn(),
+      },
+      socketFactory,
+    );
+    client.connect();
+    sockets[0]!.message(welcome);
+    vi.advanceTimersByTime(10_000);
+    sockets[0]!.message(keepalive);
+    vi.advanceTimersByTime(14_999);
+    expect(socketFactory).toHaveBeenCalledTimes(1);
+    client.stop();
+    vi.useRealTimers();
+  });
+
+  it('does not start another connection when a reconnect is already in progress', () => {
+    vi.useFakeTimers();
+    const sockets: TestSocket[] = [];
+    const socketFactory = vi.fn(() => {
+      const socket = new TestSocket();
+      sockets.push(socket);
+      return socket;
+    });
+    const client = new EventSubClient(
+      {
+        onWelcome: vi.fn(),
+        onNotification: vi.fn(),
+        onStatus: vi.fn(),
+        onRevocation: vi.fn(),
+      },
+      socketFactory,
+    );
+    client.connect();
+    sockets[0]!.message(welcome);
+    sockets[0]!.message(reconnect);
+    vi.advanceTimersByTime(15_000);
     expect(socketFactory).toHaveBeenCalledTimes(2);
     client.stop();
     vi.useRealTimers();

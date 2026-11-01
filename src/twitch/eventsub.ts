@@ -82,7 +82,7 @@ export class EventSubClient {
       new WebSocket(url) as EventSubSocket,
   ) {}
 
-  connect(url = 'wss://eventsub.wss.twitch.tv/ws'): void {
+  connect(url = 'wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30'): void {
     this.stopped = false;
     const socket = this.socketFactory(url);
     if (this.previousSocket && this.previousSocket !== this.socket) {
@@ -161,13 +161,16 @@ export class EventSubClient {
 
   private armKeepaliveTimeout(): void {
     this.clearKeepaliveTimeout();
-    this.keepaliveTimer = setTimeout(() => {
-      this.keepaliveTimer = null;
-      if (this.stopped) return;
-      this.handlers.onStatus(false, 'EventSub keepalive timed out; reconnecting');
-      this.reconnecting = false;
-      this.connect();
-    }, this.keepaliveSeconds * 1_000);
+    this.keepaliveTimer = setTimeout(
+      () => {
+        this.keepaliveTimer = null;
+        if (this.stopped || this.reconnecting) return;
+        this.handlers.onStatus(false, 'EventSub keepalive timed out; reconnecting');
+        this.reconnecting = false;
+        this.connect();
+      },
+      Math.max(this.keepaliveSeconds + 5, this.keepaliveSeconds * 1.5) * 1_000,
+    );
   }
 
   private clearKeepaliveTimeout(): void {
