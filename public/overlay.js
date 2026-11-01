@@ -9,6 +9,7 @@ import { connectOverlaySocket } from './socket.js';
 const view = new OverlayView();
 const vibeDisabledNotice = '!vibe is off — OPENAI_API_KEY is not set';
 const initial = await fetch('/api/config').then((response) => response.json());
+view.setConnection(initial.connected, initial.login);
 let layers = initial.layers ?? [];
 let tempo = initial.tempo;
 const engine = new AudioEngine();
