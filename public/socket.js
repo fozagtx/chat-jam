@@ -1,5 +1,6 @@
 export function connectOverlaySocket(onEvent, onConnection) {
-  const socket = new WebSocket(`ws://${location.host}/live`);
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${protocol}//${location.host}/live`);
   socket.addEventListener('open', () => onConnection(true));
   socket.addEventListener('close', () => onConnection(false));
   socket.addEventListener('message', (message) => {
