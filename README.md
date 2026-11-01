@@ -9,12 +9,12 @@ Chat Jam turns a Twitch chat into a live band. Viewers add synthesized layers; f
 ## Run it
 
 1. Clone the repo and run `npm install` with Node.js 22 or newer.
-2. Add your public Twitch Client ID to `TWITCH_CLIENT_ID` in `src/config.ts` (or set the `TWITCH_CLIENT_ID` environment variable). Set the Twitch app redirect URL to `http://localhost:3000/callback`.
+2. The public Twitch Client ID is already set in `src/config.ts`. To use your own Twitch app instead, replace `TWITCH_CLIENT_ID` there (or set the `TWITCH_CLIENT_ID` environment variable) and set that app's redirect URL to `http://localhost:3000/callback`.
 3. Run `npm start`, open `http://localhost:3000`, choose **Connect with Twitch**, and approve access.
 4. In OBS, add a **Browser** source at `http://localhost:3000/overlay`, set it to 1920×1080, tick **Control audio via OBS**, and set the level in the Audio Mixer.
 5. To enable early Drops, open Twitch Creator Dashboard → Viewer Rewards → Channel Points → Manage Rewards, add a reward, and name it **Drop the beat**.
 
-The Client ID is intentionally blank in this repo until configured. Twitch access tokens are validated and kept in memory; Chat Jam has no database and never posts chat replies.
+Twitch access tokens are validated and kept in memory; Chat Jam has no database and never posts chat replies.
 
 ## Commands
 
