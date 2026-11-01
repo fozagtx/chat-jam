@@ -36,8 +36,11 @@ export function captionForLayers(layers, step) {
   if (!groups.size) return 'Listening for the next sound…';
   return [...groups.values()]
     .map(({ name, instruments }) => {
-      const drums = instruments.filter((instrument) => DRUM_INSTRUMENTS.has(instrument));
-      const pitched = instruments.filter(
+      const uniqueInstruments = [...new Set(instruments)];
+      const drums = uniqueInstruments.filter((instrument) =>
+        DRUM_INSTRUMENTS.has(instrument),
+      );
+      const pitched = uniqueInstruments.filter(
         (instrument) => !DRUM_INSTRUMENTS.has(instrument),
       );
       const sounds = [drums.join(' · '), pitched.join(' + ')].filter(Boolean).join(' · ');

@@ -21,4 +21,16 @@ describe('band viewer labels and captions', () => {
     expect(captionForLayers(layers, 1)).toBe('snare by other');
     expect(captionForLayers(layers, 2)).toBe('Listening for the next sound…');
   });
+
+  it('lists each active instrument once per viewer in first-seen order', () => {
+    const repeatedLayers = [
+      ...layers.slice(0, 4),
+      { ...layers[0]!, steps: [0] },
+      { ...layers[2]!, steps: [0] },
+      { ...layers[3]!, steps: [0] },
+    ];
+    expect(captionForLayers(repeatedLayers, 0)).toBe(
+      'kick · hat · bass + melody by xobadad',
+    );
+  });
 });
