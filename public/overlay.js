@@ -7,6 +7,7 @@ import { OverlayView } from './overlay-view.js';
 import { connectOverlaySocket } from './socket.js';
 
 const view = new OverlayView();
+const vibeDisabledNotice = '!vibe is off — OPENAI_API_KEY is not set';
 const initial = await fetch('/api/config').then((response) => response.json());
 let layers = initial.layers ?? [];
 let tempo = initial.tempo;
@@ -44,9 +45,6 @@ const applyReducedMotion = () => {
 applyReducedMotion();
 reducedMotionQuery.addEventListener('change', applyReducedMotion);
 engine.setVolume(initial.volume);
-if (!initial.openAIEnabled) {
-  view.showNotice('!vibe is off — OPENAI_API_KEY is not set');
-}
 view.renderLayers(layers);
 scheduler.start();
 const showStartButton = () => {
@@ -76,7 +74,7 @@ connectOverlaySocket(
     } else if (message.type === 'drop') {
       drop.play(message.contributors ?? [], message.tempo ?? tempo);
     } else if (message.type === 'notice') {
-      view.showNotice(message.text);
+      if (message.text !== vibeDisabledNotice) view.showNotice(message.text);
     } else if (message.type === 'slowdown') {
       view.showNotice('Slow down — one sound every 5 seconds');
     } else if (message.type === 'hype') {
