@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chat Jam — Song & clips</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body class="dashboard-body" data-page="song">
+    <div class="dashboard-root">
+      <aside id="sidebar" class="sidebar"></aside>
+      <div class="dashboard-main">
+        <header id="topbar" class="topbar"></header>
+        <main class="dashboard-page">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">[tonight’s session]</div>
+              <h1>Song &amp; clips</h1>
+              <p>Take the community track with you and revisit clips from The Drop.</p>
+            </div>
+          </div>
+          <div class="song-layout">
+            <section class="tool-panel export-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">[offline export]</span>
+                  <h2>Download tonight’s song</h2>
+                </div>
+                <div class="mini-disc" aria-hidden="true"></div>
+              </div>
+              <p>
+                Render the current layers and The Drop to a WAV, with contributor credits
+                embedded.
+              </p>
+              <button id="download" class="button button-primary" disabled>
+                Download tonight’s song
+              </button>
+              <p id="downloadHint" class="download-hint">
+                Nothing to download yet — chat hasn’t added a sound
+              </p>
+              <a
+                id="creditsDownload"
+                class="credits-download hidden"
+                download="credits.txt"
+                >Download credits.txt</a
+              >
+            </section>
+            <section class="tool-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">[contributors]</span>
+                  <h2>Made by chat</h2>
+                </div>
+                <span id="contributorCount" class="count-pill">0</span>
+              </div>
+              <p id="contributorsEmpty" class="empty-state">
+                No contributors yet. Names appear when chat adds a sound.
+              </p>
+              <ul id="contributorsList" class="plain-list"></ul>
+            </section>
+          </div>
+          <section class="tool-panel clips-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">[the drop]</span>
+                <h2>Recent clip results</h2>
+              </div>
+              <span class="small-note">Twitch clips are created after The Drop</span>
+            </div>
+            <p id="clipsEmpty" class="empty-state">No clip results yet.</p>
+            <ol id="clipsList" class="clips-list"></ol>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/dashboard.js"></script>
+  </body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chat Jam — Sound</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body class="dashboard-body" data-page="sound">
+    <div class="dashboard-root">
+      <aside id="sidebar" class="sidebar"></aside>
+      <div class="dashboard-main">
+        <header id="topbar" class="topbar"></header>
+        <main class="dashboard-page">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">[sound controls]</div>
+              <h1>Sound</h1>
+              <p>Set the musical center for every new layer and The Drop.</p>
+            </div>
+          </div>
+          <section class="tool-panel settings-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">[song settings]</span>
+                <h2>Key, tempo &amp; mix</h2>
+              </div>
+              <span class="small-note"
+                >Applied to the live overlay and tonight’s export</span
+              >
+            </div>
+            <div class="dashboard-settings">
+              <label class="setting-pill"
+                ><span>Key</span
+                ><select id="key">
+                  <option>C</option>
+                  <option>C#</option>
+                  <option>D</option>
+                  <option>Eb</option>
+                  <option>E</option>
+                  <option>F</option>
+                  <option>F#</option>
+                  <option>G</option>
+                  <option>Ab</option>
+                  <option>A</option>
+                  <option>Bb</option>
+                  <option>B</option>
+                </select></label
+              >
+              <label class="setting-pill"
+                ><span>Scale</span
+                ><select id="scale">
+                  <option>major</option>
+                  <option>minor</option>
+                  <option>pentatonic</option>
+                  <option>minor pentatonic</option>
+                </select></label
+              >
+              <label class="range-setting"
+                ><span
+                  >Tempo <b><span id="tempoVal">100</span> bpm</b></span
+                ><input id="tempo" type="range" min="60" max="180" value="100"
+              /></label>
+              <label class="range-setting"
+                ><span>Volume <b id="volumeVal">70%</b></span
+                ><input id="volume" type="range" min="0" max="100" value="70"
+              /></label>
+              <label class="motion-pill"
+                ><input id="reducedMotion" type="checkbox" /><span
+                  >Reduce motion</span
+                ></label
+              >
+            </div>
+            <div class="panel-actions">
+              <button id="save" class="button button-primary">Apply settings</button
+              ><span id="settingsFeedback" class="small-note" role="status"></span>
+            </div>
+          </section>
+          <section class="tool-panel note-panel">
+            <span class="eyebrow">[how it sounds]</span>
+            <p>
+              Chat layers snap to this key and scale. Drum hits begin on the next beat;
+              bass and melody enter on the next bar. The mix is synthesized in the browser
+              and protected by a limiter.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/dashboard.js"></script>
+  </body>
+</html>

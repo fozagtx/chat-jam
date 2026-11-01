@@ -6,8 +6,13 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { clientId, PORT } from './config.js';
 import { Song } from './song.js';
 import { ChatJam } from './chat.js';
+import { ActivityBuffer } from './activity.js';
 import { EventSubClient } from './twitch/eventsub.js';
-import { subscribeToChannelEvents } from './twitch/helix.js';
+import {
+  getStreamStatus,
+  subscribeToChannelEvents,
+  type StreamStatus,
+} from './twitch/helix.js';
 import { validateTwitchToken, type ConnectedAccount } from './twitch/oauth.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -45,19 +50,100 @@ const webSockets = new WebSocketServer({ server, path: '/live' });
 const song = new Song();
 let account: ConnectedAccount | null = null;
 let eventSub: EventSubClient | null = null;
+let streamStatus: StreamStatus = 'unknown';
+const activity = new ActivityBuffer(50);
+const clipResults: Array<{ at: string; text: string; edit_url?: string }> = [];
 
-function broadcast(event: Record<string, unknown>): void {
+function send(event: Record<string, unknown>): void {
   const message = JSON.stringify(event);
   for (const socket of webSockets.clients) {
     if (socket.readyState === WebSocket.OPEN) socket.send(message);
   }
 }
 
+function activityFor(
+  event: Record<string, unknown>,
+): { kind: string; text: string } | null {
+  const name = String(event.userName ?? event.name ?? 'A viewer');
+  if (event.type === 'layer') {
+    const layer = event.layer as { userName?: string; instrument?: string } | undefined;
+    return {
+      kind: 'sound',
+      text: `${layer?.userName ?? name} added a ${layer?.instrument ?? 'sound'} layer`,
+    };
+  }
+  if (event.type === 'slowdown')
+    return { kind: 'chat', text: `${name} was rate limited` };
+  if (event.type === 'reset') return { kind: 'song', text: 'Song reset by a moderator' };
+  if (event.type === 'drop') return { kind: 'drop', text: 'The Drop fired' };
+  if (event.type === 'hype') {
+    const kind = String(event.kind ?? 'event');
+    const details = kind === 'cheer' && event.bits ? ` · ${event.bits} bits` : '';
+    return {
+      kind,
+      text: `${name} ${kind === 'raid' ? 'raided' : kind === 'sub' ? 'subscribed' : 'cheered'}${details}`,
+    };
+  }
+  if (event.type === 'notice' && typeof event.text === 'string') {
+    const text = event.text;
+    if (text.startsWith('Clip ') || text.startsWith('Go live to auto-clip')) {
+      return { kind: 'clip', text };
+    }
+  }
+  return null;
+}
+
+function broadcast(event: Record<string, unknown>): void {
+  const entry = activityFor(event);
+  if (entry) {
+    const record = activity.add(entry.kind, entry.text);
+    send({ type: 'activity', activity: record });
+  }
+  if (entry?.kind === 'clip') {
+    const result: { at: string; text: string; edit_url?: string } = {
+      at: new Date().toISOString(),
+      text: entry.text,
+    };
+    if (typeof event.url === 'string') result.edit_url = event.url;
+    clipResults.unshift(result);
+    clipResults.splice(20);
+  }
+  send(event);
+}
+
+async function refreshStreamStatus(): Promise<void> {
+  const current = account;
+  if (!current) {
+    streamStatus = 'unknown';
+  } else {
+    try {
+      streamStatus = await getStreamStatus(
+        { clientId, accessToken: current.accessToken },
+        current.user_id,
+      );
+    } catch {
+      streamStatus = 'unknown';
+    }
+    if (account !== current) return;
+  }
+  send({ type: 'stream', streamStatus });
+}
+setInterval(() => void refreshStreamStatus(), 60_000);
+
 app.get('/', (_request, response) =>
   response.sendFile(path.join(publicDirectory, 'index.html')),
 );
 app.get('/callback', (_request, response) =>
   response.sendFile(path.join(publicDirectory, 'index.html')),
+);
+app.get('/sound', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'sound.html')),
+);
+app.get('/overlay-setup', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'overlay-setup.html')),
+);
+app.get('/song', (_request, response) =>
+  response.sendFile(path.join(publicDirectory, 'song.html')),
 );
 app.get('/overlay', (_request, response) =>
   response.sendFile(path.join(publicDirectory, 'overlay.html')),
@@ -77,10 +163,14 @@ app.get('/api/config', (_request, response) => {
     ...song.settings,
     connected: Boolean(account),
     login: account?.login ?? '',
+    streamStatus,
     layers: song.layers,
     contributors: song.contributors,
+    clips: clipResults,
   });
 });
+app.get('/api/activity', (_request, response) => response.json(activity.recent()));
+app.get('/api/clips', (_request, response) => response.json(clipResults));
 app.post('/api/token', async (request, response) => {
   const accessToken = String(request.body?.access_token ?? '');
   if (!accessToken) return response.status(400).json({ error: 'Missing token' });
@@ -88,6 +178,8 @@ app.post('/api/token', async (request, response) => {
   try {
     account = await validateTwitchToken(accessToken, clientId);
     response.json({ ok: true, login: account.login });
+    streamStatus = 'unknown';
+    void refreshStreamStatus();
     eventSub?.stop();
     eventSub = new EventSubClient({
       onWelcome: async (sessionId, migratedSubscriptions) => {

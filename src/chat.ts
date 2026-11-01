@@ -78,12 +78,12 @@ export class ChatJam {
 
     const now = Date.now();
     if (!this.rateLimiter.allow(userId, now)) {
-      this.options.broadcast({ type: 'slowdown', userId });
+      this.options.broadcast({ type: 'slowdown', userId, userName });
       return;
     }
     if (message.kind === 'vibe') {
       if (!this.rateLimiter.allow(userId, now, true)) {
-        this.options.broadcast({ type: 'slowdown', userId });
+        this.options.broadcast({ type: 'slowdown', userId, userName });
         return;
       }
       await this.addVibe(message.text, event, userId, userName);

@@ -14,6 +14,34 @@ export interface CreateClipResponse {
   data: TwitchClip[];
 }
 
+export type StreamStatus = 'live' | 'offline' | 'unknown';
+
+export function parseStreamStatus(payload: unknown): StreamStatus {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
+    return 'unknown';
+  }
+  const data = (payload as { data?: unknown }).data;
+  if (!Array.isArray(data)) return 'unknown';
+  return data.length > 0 ? 'live' : 'offline';
+}
+
+export async function getStreamStatus(
+  credentials: TwitchCredentials,
+  broadcasterId: string,
+): Promise<StreamStatus> {
+  const response = await fetch(
+    `${HELIX}/streams?user_id=${encodeURIComponent(broadcasterId)}`,
+    {
+      headers: {
+        'Client-ID': credentials.clientId,
+        Authorization: `Bearer ${credentials.accessToken}`,
+      },
+    },
+  );
+  if (!response.ok) throw new HelixError(response.status);
+  return parseStreamStatus(await response.json());
+}
+
 export class HelixError extends Error {
   constructor(public readonly status: number) {
     super(`Helix request failed (${status})`);

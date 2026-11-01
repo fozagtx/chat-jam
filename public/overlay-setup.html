@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chat Jam — Overlay setup</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body class="dashboard-body" data-page="overlay">
+    <div class="dashboard-root">
+      <aside id="sidebar" class="sidebar"></aside>
+      <div class="dashboard-main">
+        <header id="topbar" class="topbar"></header>
+        <main class="dashboard-page">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">[stream output]</div>
+              <h1>Overlay</h1>
+              <p>
+                Preview the band, then add the transparent browser source to your stream.
+              </p>
+            </div>
+          </div>
+          <section class="tool-panel overlay-url-panel">
+            <div>
+              <span class="eyebrow">[overlay url]</span>
+              <h2>Your OBS browser source</h2>
+              <p id="overlayUrl" class="overlay-url"></p>
+            </div>
+            <button id="copyOverlayUrl" class="button button-secondary">Copy</button
+            ><span id="copyFeedback" class="small-note" role="status"></span>
+          </section>
+          <section class="tool-panel preview-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">[live preview]</span>
+                <h2>Chat Jam overlay</h2>
+              </div>
+              <span class="small-note">1920 × 1080</span>
+            </div>
+            <div id="previewViewport" class="preview-viewport">
+              <iframe
+                id="overlayPreview"
+                title="Live Chat Jam OBS overlay"
+                src="/overlay"
+              ></iframe>
+            </div>
+          </section>
+          <div class="setup-steps">
+            <section class="tool-panel">
+              <span class="eyebrow">[obs studio]</span>
+              <h2>Add a browser source</h2>
+              <ol>
+                <li>Add <b>Browser</b> as a source in your scene.</li>
+                <li>Paste the overlay URL above.</li>
+                <li>Set width to 1920 and height to 1080.</li>
+                <li>Enable <b>Control audio via OBS</b> in the source properties.</li>
+              </ol>
+            </section>
+            <section class="tool-panel">
+              <span class="eyebrow">[twitch studio]</span>
+              <h2>Add a browser layer</h2>
+              <ol>
+                <li>Add a <b>Browser</b> layer to your stream scene.</li>
+                <li>Use the overlay URL above and set the canvas to 1920 × 1080.</li>
+                <li>Enable browser audio in the layer’s audio settings.</li>
+              </ol>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/dashboard.js"></script>
+  </body>
+</html>

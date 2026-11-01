@@ -3,101 +3,86 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Chat Jam — a sacred place for work-in-progress music</title>
+    <title>Chat Jam — Live</title>
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/dashboard.css" />
   </head>
-  <body class="setup">
-    <main class="setup-shell">
-      <header class="setup-header">
-        <h1>Your chat is the band.<br />Fill eight layers, hit The Drop.</h1>
-        <div class="connect-stack">
-          <button id="connect" class="button button-primary">Connect with Twitch</button>
-          <p id="clientNotice" class="quiet-hint hidden">
-            Twitch Client ID not set. Add your public ID in <code>src/config.ts</code> to
-            connect.
-          </p>
-        </div>
-      </header>
-
-      <section class="hero-records" aria-label="Three iridescent compact discs">
-        <div class="hero-disc hero-disc-blue"><div class="cd-hub"></div></div>
-        <div class="hero-disc hero-disc-silver"><div class="cd-hub"></div></div>
-        <div class="hero-disc hero-disc-amber"><div class="cd-hub"></div></div>
-      </section>
-
-      <section class="workbench" aria-label="Chat Jam settings">
-        <div class="workbench-label">[chat jam]</div>
-        <div class="settings-row">
-          <label class="setting-pill">
-            <span>Key</span>
-            <select id="key">
-              <option>C</option>
-              <option>C#</option>
-              <option>D</option>
-              <option>Eb</option>
-              <option>E</option>
-              <option>F</option>
-              <option>F#</option>
-              <option>G</option>
-              <option>Ab</option>
-              <option>A</option>
-              <option>Bb</option>
-              <option>B</option>
-            </select>
-          </label>
-          <label class="setting-pill">
-            <span>Scale</span>
-            <select id="scale">
-              <option>major</option>
-              <option>minor</option>
-              <option>pentatonic</option>
-              <option>minor pentatonic</option>
-            </select>
-          </label>
-          <label class="range-setting">
-            <span
-              >Tempo <b><span id="tempoVal">100</span> bpm</b></span
+  <body class="dashboard-body" data-page="live">
+    <div class="dashboard-root">
+      <aside id="sidebar" class="sidebar"></aside>
+      <div class="dashboard-main">
+        <header id="topbar" class="topbar"></header>
+        <main class="dashboard-page">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">[live control]</div>
+              <h1>Live</h1>
+              <p>Chat is the band. Watch the song fill in as viewers play.</p>
+            </div>
+            <a class="button button-secondary" href="/overlay-setup"
+              >Open overlay setup</a
             >
-            <input id="tempo" type="range" min="60" max="180" value="100" />
-          </label>
-          <label class="range-setting">
-            <span>Volume <b id="volumeVal">70%</b></span>
-            <input id="volume" type="range" min="0" max="100" value="70" />
-          </label>
-          <label class="motion-pill">
-            <input id="reducedMotion" type="checkbox" />
-            <span>Reduce motion</span>
-          </label>
-        </div>
-        <div class="action-row">
-          <button id="save" class="button button-secondary">Apply settings</button>
-          <button id="download" class="button button-secondary" disabled>
-            Download tonight’s song
-          </button>
-          <p id="downloadHint" class="download-hint">
-            Nothing to download yet — chat hasn't added a sound
-          </p>
-          <a id="creditsDownload" class="credits-download hidden" download="credits.txt">
-            Download credits.txt
-          </a>
-        </div>
-        <div class="status-row">
-          <p id="status" class="micro-label">[not connected] · 0/8 layers · last: —</p>
-          <p id="clipNotice" class="quiet-hint hidden"></p>
-          <a
-            id="clipLink"
-            class="credits-download hidden"
-            target="_blank"
-            rel="noreferrer"
-            >Open saved clip</a
-          >
-          <p id="vibeNotice" class="quiet-hint hidden">
-            !vibe is off — OPENAI_API_KEY is not set.
-          </p>
-        </div>
-        <a class="overlay-link" href="/overlay" target="_blank">Open overlay ↗</a>
-      </section>
-    </main>
-    <script type="module" src="/setup.js"></script>
+          </div>
+          <div class="live-layout">
+            <section class="tool-panel band-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">[the band]</span>
+                  <h2>Current lineup</h2>
+                </div>
+                <span id="bandCount" class="count-pill">0/8</span>
+              </div>
+              <p id="bandEmpty" class="empty-state">
+                Waiting for chat to add the first sound.
+              </p>
+              <div id="dashboardBand" class="dashboard-band"></div>
+              <div class="band-foot">
+                <span id="dashboardLeader">[leader] —</span
+                ><span id="liveSongInfo">C major · 100 bpm</span>
+              </div>
+            </section>
+            <section class="tool-panel activity-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">[recent activity]</span>
+                  <h2>Live feed</h2>
+                </div>
+                <span class="live-indicator"><i></i> live</span>
+              </div>
+              <p id="activityEmpty" class="empty-state">
+                No activity yet. Chat events will appear here.
+              </p>
+              <ol id="activityFeed" class="activity-feed"></ol>
+            </section>
+          </div>
+          <section class="tool-panel command-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">[chat commands]</span>
+                <h2>Give chat a part to play</h2>
+              </div>
+              <span id="vibeUnavailable" class="small-note hidden"
+                >!vibe needs OPENAI_API_KEY</span
+              >
+            </div>
+            <div class="command-grid">
+              <div>
+                <code>!kick</code><code>!snare</code><code>!hat</code
+                ><span>Drum layers</span>
+              </div>
+              <div><code>!bass 1–4</code><span>Bass patterns snapped to key</span></div>
+              <div>
+                <code>!melody C E G</code><span>Up to eight notes, snapped to scale</span>
+              </div>
+              <div><code>!reset</code><span>Moderators and broadcaster only</span></div>
+              <div>
+                <code>!vibe spooky pirate</code><span>Moderated AI generated sound</span>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/dashboard.js"></script>
   </body>
 </html>
