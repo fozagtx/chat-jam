@@ -7,6 +7,44 @@ const INSTRUMENTS = {
   vibe: 'vibe',
 };
 const EMPTY_SLOT_COMMANDS = ['!kick', '!snare', '!hat', '!bass 1', '!melody C E G'];
+const DRUM_INSTRUMENTS = new Set(['kick', 'snare', 'hat']);
+
+export function viewerNameLabel(layers, layer, index) {
+  const viewerKey = layer.userId || layer.userName;
+  const viewerLayers = layers.filter(
+    (candidate) => (candidate.userId || candidate.userName) === viewerKey,
+  );
+  const firstIndex = layers.findIndex(
+    (candidate) => (candidate.userId || candidate.userName) === viewerKey,
+  );
+  if (index !== firstIndex) return null;
+  return viewerLayers.length > 1
+    ? `${layer.userName} ×${viewerLayers.length}`
+    : layer.userName;
+}
+
+export function captionForLayers(layers, step) {
+  const active = layers.filter((layer) => layer.steps.includes(step));
+  const groups = new Map();
+  for (const layer of active) {
+    const key = layer.userId || layer.userName;
+    const group = groups.get(key) ?? { name: layer.userName, instruments: [] };
+    group.instruments.push(layer.instrument);
+    groups.set(key, group);
+  }
+
+  if (!groups.size) return 'Listening for the next sound…';
+  return [...groups.values()]
+    .map(({ name, instruments }) => {
+      const drums = instruments.filter((instrument) => DRUM_INSTRUMENTS.has(instrument));
+      const pitched = instruments.filter(
+        (instrument) => !DRUM_INSTRUMENTS.has(instrument),
+      );
+      const sounds = [drums.join(' · '), pitched.join(' + ')].filter(Boolean).join(' · ');
+      return `${sounds} by ${name}`;
+    })
+    .join(' · ');
+}
 
 export class OverlayView {
   constructor() {
@@ -14,6 +52,7 @@ export class OverlayView {
     this.band = document.querySelector('#band');
     this.lastFlashAt = -Infinity;
     this.reducedMotion = false;
+    this.noticeTimer = null;
 
     for (let index = 0; index < 16; index += 1) {
       const cell = document.createElement('div');
@@ -80,13 +119,20 @@ export class OverlayView {
       const disc = document.createElement('div');
       disc.className = 'cd-disc';
       disc.setAttribute('aria-hidden', 'true');
-      const name = document.createElement('span');
-      name.className = 'viewer-name';
-      name.textContent = layer.userName;
+      slot.setAttribute(
+        'aria-label',
+        `${layer.userName}, ${INSTRUMENTS[layer.instrument] ?? 'sound'} layer`,
+      );
+      const label = viewerNameLabel(layers, layer, index);
+      const name = label ? document.createElement('span') : null;
+      if (name) {
+        name.className = 'viewer-name';
+        name.textContent = label;
+      }
       const instrument = document.createElement('span');
       instrument.className = 'instrument-label';
       instrument.textContent = INSTRUMENTS[layer.instrument] ?? 'sound';
-      slot.append(disc, name, instrument);
+      slot.append(disc, ...(name ? [name] : []), instrument);
       return slot;
     });
     this.band.replaceChildren(...slots);
@@ -127,21 +173,17 @@ export class OverlayView {
   }
 
   setCaption(layers, step) {
-    const active = layers.filter((layer) => layer.steps.includes(step));
-    const caption = active.length
-      ? active
-          .map((layer) =>
-            ['bass', 'melody', 'vibe'].includes(layer.instrument)
-              ? `${layer.instrument} by ${layer.userName}`
-              : layer.instrument,
-          )
-          .join(' · ')
-      : 'Listening for the next sound…';
-    document.querySelector('#caption').textContent = caption;
+    document.querySelector('#caption').textContent = captionForLayers(layers, step);
   }
 
   showNotice(text) {
-    document.querySelector('#notice').textContent = text;
+    const notice = document.querySelector('#notice');
+    clearTimeout(this.noticeTimer);
+    notice.textContent = text;
+    this.noticeTimer = setTimeout(() => {
+      notice.textContent = '';
+      this.noticeTimer = null;
+    }, 4_000);
   }
 
   setReducedMotion(enabled) {

@@ -12,6 +12,8 @@ const initial = await fetch('/api/config').then((response) => response.json());
 view.setConnection(initial.connected, initial.login);
 let layers = initial.layers ?? [];
 let tempo = initial.tempo;
+let key = initial.key;
+let scale = initial.scale;
 const engine = new AudioEngine();
 const scheduler = new LookaheadScheduler({
   engine,
@@ -68,6 +70,8 @@ connectOverlaySocket(
       view.renderLayers(layers);
     } else if (message.type === 'settings') {
       tempo = message.tempo;
+      key = message.key;
+      scale = message.scale;
       reducedMotionPreference = Boolean(message.reducedMotion);
       applyReducedMotion();
       engine.setVolume(message.volume);
@@ -87,6 +91,24 @@ connectOverlaySocket(
   (connected) => {
     if (!connected) view.setConnection(false);
   },
+  async () => {
+    try {
+      const current = await fetch('/api/config').then((response) => response.json());
+      layers = current.layers ?? [];
+      tempo = current.tempo;
+      key = current.key;
+      scale = current.scale;
+      reducedMotionPreference = Boolean(current.reducedMotion);
+      applyReducedMotion();
+      engine.setVolume(current.volume);
+      view.setMetadata(current);
+      view.setConnection(current.connected, current.login ?? '');
+      scheduler.reset();
+      view.renderLayers(layers);
+    } catch {
+      // Keep the last rendered song if the state request briefly fails.
+    }
+  },
 );
 
 function playHype(message, audio, overlayView) {
@@ -97,7 +119,7 @@ function playHype(message, audio, overlayView) {
       const time = now + (subdivision * beat) / 2;
       audio.voice(subdivision % 2 === 0 ? 'kick' : 'snare', time);
       audio.tone(
-        noteFrequency(scaleNote(initial.key, initial.scale, subdivision, 4)),
+        noteFrequency(scaleNote(key, scale, subdivision, 4)),
         time,
         0.2,
         'sawtooth',
@@ -108,7 +130,7 @@ function playHype(message, audio, overlayView) {
   } else if (message.kind === 'sub') {
     for (let degree = 0; degree < 4; degree += 1) {
       audio.tone(
-        noteFrequency(scaleNote(initial.key, initial.scale, degree * 2, 4)),
+        noteFrequency(scaleNote(key, scale, degree * 2, 4)),
         now + degree * beat,
         beat * 0.8,
         'sine',

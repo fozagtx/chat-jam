@@ -61,6 +61,20 @@ export function playVoice(context, destination, instrument, time, note = 'C3') {
     playTone(context, destination, 190, time, 0.1, 'triangle', 0.12);
   } else if (instrument === 'hat') {
     playNoise(context, destination, time, 0.045, 0.11);
+  } else if (instrument === 'bass') {
+    const oscillator = context.createOscillator();
+    const filter = context.createBiquadFilter();
+    const envelope = context.createGain();
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(noteFrequency(note), time);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(750, time);
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(0.22, time + 0.012);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.35);
+    oscillator.connect(filter).connect(envelope).connect(destination);
+    oscillator.start(time);
+    oscillator.stop(time + 0.36);
   } else {
     playTone(context, destination, noteFrequency(note), time, 0.24, 'triangle', 0.12);
   }

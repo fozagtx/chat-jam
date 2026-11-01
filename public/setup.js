@@ -1,5 +1,6 @@
 import { renderSong } from './audio/synth.js';
 import { encodeWav } from './wav.js';
+import { connectOverlaySocket } from './socket.js';
 
 const $ = (selector) => document.querySelector(selector);
 const config = await fetch('/api/config').then((response) => response.json());
@@ -120,40 +121,47 @@ $('#save').onclick = async () => {
 
 updateStatus();
 setLayerCount(layerCount);
-const live = new WebSocket(`ws://${location.host}/live`);
-live.onopen = async () => {
-  const song = await fetch('/api/song').then((response) => response.json());
-  setLayerCount(song.layers.length);
-};
-live.onmessage = (message) => {
-  const event = JSON.parse(message.data);
-  if (event.type === 'status') {
-    connected = event.connected;
-    currentLogin = event.login || currentLogin;
-  } else if (event.type === 'layer') {
-    lastCommand = `${event.layer.userName} · ${event.layer.instrument}`;
-    clearOldExport();
-    setLayerCount(event.layers.length);
-  } else if (event.type === 'reset') {
-    lastCommand = 'song reset';
-    setLayerCount(0);
-  } else if (
-    event.type === 'notice' &&
-    ['Clip saved', 'Clip failed', 'Go live to auto-clip the Drop'].includes(event.text)
-  ) {
-    $('#clipNotice').textContent = event.text;
-    $('#clipNotice').classList.remove('hidden');
-    const clipLink = $('#clipLink');
-    if (event.url) {
-      clipLink.href = event.url;
-      clipLink.classList.remove('hidden');
-    } else {
-      clipLink.removeAttribute('href');
-      clipLink.classList.add('hidden');
+connectOverlaySocket(
+  (event) => {
+    if (event.type === 'status') {
+      connected = event.connected;
+      currentLogin = event.login || currentLogin;
+    } else if (event.type === 'layer') {
+      lastCommand = `${event.layer.userName} · ${event.layer.instrument}`;
+      clearOldExport();
+      setLayerCount(event.layers.length);
+    } else if (event.type === 'reset') {
+      lastCommand = 'song reset';
+      setLayerCount(0);
+    } else if (
+      event.type === 'notice' &&
+      ['Clip saved', 'Clip failed', 'Go live to auto-clip the Drop'].includes(event.text)
+    ) {
+      $('#clipNotice').textContent = event.text;
+      $('#clipNotice').classList.remove('hidden');
+      const clipLink = $('#clipLink');
+      if (event.url) {
+        clipLink.href = event.url;
+        clipLink.classList.remove('hidden');
+      } else {
+        clipLink.removeAttribute('href');
+        clipLink.classList.add('hidden');
+      }
     }
-  }
-  updateStatus();
-};
+    updateStatus();
+  },
+  undefined,
+  async () => {
+    try {
+      const current = await fetch('/api/config').then((response) => response.json());
+      connected = current.connected;
+      currentLogin = current.login || currentLogin;
+      setLayerCount(current.layers.length);
+    } catch {
+      // Keep the last known setup status if the state request briefly fails.
+    }
+  },
+);
 
 downloadButton.onclick = async () => {
   isRendering = true;
