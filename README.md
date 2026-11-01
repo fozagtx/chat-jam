@@ -12,21 +12,21 @@ Codex session ID: `01a18a97-b827-7122-a45a-4752a7ad6d44` (one main thread for th
 
 Devin (Cognition's agent) coordinated by driving the Codex CLI in this thread with `codex exec resume <session-id> "<prompt>"`. Codex wrote the code and ran lint, typecheck, and tests. Devin reviewed it, ran real Twitch tests by typing commands in channel chat, and pushed.
 
-| Work in this thread | Commit |
-| --- | --- |
-| TypeScript project setup | `6b1e3c4` |
-| Chat Jam v1 | `85e2019` |
-| Keep generated layers in key | `a12f466` |
-| Prettier and ESLint tooling | `07a793f` |
-| Module split | `ed4847f` |
-| EventSub reconnection hardening | `c81dd8c` |
-| Motion controls and overlay header | `4b5e11c` |
-| Export gating and embedded credits | `b6dced7` |
-| UI restyle | `4d1208d` |
-| Twitch connect client ID fix | `feceeff` |
-| Hide vibe notice on overlay | `ee37950` |
+| Work in this thread                      | Commit    |
+| ---------------------------------------- | --------- |
+| TypeScript project setup                 | `6b1e3c4` |
+| Chat Jam v1                              | `85e2019` |
+| Keep generated layers in key             | `a12f466` |
+| Prettier and ESLint tooling              | `07a793f` |
+| Module split                             | `ed4847f` |
+| EventSub reconnection hardening          | `c81dd8c` |
+| Motion controls and overlay header       | `4b5e11c` |
+| Export gating and embedded credits       | `b6dced7` |
+| UI restyle                               | `4d1208d` |
+| Twitch connect client ID fix             | `feceeff` |
+| Hide vibe notice on overlay              | `ee37950` |
 | Disc tint, empty slot hints, clip notice | `2f09b63` |
-| Connection state on overlay load | `c11a39d` |
+| Connection state on overlay load         | `c11a39d` |
 
 ## Run it
 
