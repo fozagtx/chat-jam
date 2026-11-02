@@ -6,6 +6,7 @@ import {
   nextBeatStart,
   secondsPerStep,
 } from '../scheduler.js';
+import { stepVelocity, swingOffset } from './synth.js';
 
 const DRUMS = new Set(['kick', 'snare', 'hat']);
 
@@ -65,6 +66,11 @@ export class LookaheadScheduler {
             layer.instrument,
             this.nextTime,
             layer.notes?.[noteIndex] ?? 'C3',
+            {
+              step,
+              velocity: stepVelocity(layer.instrument, step),
+              swingOffset: swingOffset(layer.instrument, step, tempo),
+            },
           );
           this.onLayerHit(layer, step);
         }

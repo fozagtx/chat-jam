@@ -1,3 +1,10 @@
+import {
+  attachRiveArt,
+  disposeRive,
+  setRiveReducedMotion,
+  triggerRive,
+} from './rive-art.js';
+
 const INSTRUMENTS = {
   kick: 'kick',
   snare: 'snare',
@@ -30,7 +37,7 @@ export function instrumentHitDuration(instrument, tempo) {
   return Math.round(Math.min(650, Math.max(80, stepMs * (steps[instrument] ?? 1.6))));
 }
 
-export function createInstrumentArt(instrument) {
+export function createInstrumentArt(instrument, { join = false, joinDelay = 0 } = {}) {
   const art = document.createElement('div');
   art.className = `instrument-art art-${INSTRUMENTS[instrument] ?? 'vibe'}`;
   art.setAttribute('aria-hidden', 'true');
@@ -48,6 +55,23 @@ export function createInstrumentArt(instrument) {
       art.append(part);
     }
     art.append(makeArtPart('art-flower-core'));
+  }
+  if (['kick', 'snare', 'hat', 'bass', 'melody'].includes(instrument)) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'rive-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    art.append(canvas);
+    const controller = attachRiveArt(
+      canvas,
+      `/rive/${instrument}.riv`,
+      instrument[0].toUpperCase() + instrument.slice(1),
+      'Instrument',
+      (loaded) => {
+        art.classList.add('rive-ready');
+        if (join) setTimeout(() => triggerRive(loaded, 'join'), joinDelay);
+      },
+    );
+    art.riveController = controller;
   }
   return art;
 }
@@ -118,9 +142,8 @@ export class OverlayView {
     }
   }
 
-  setMetadata({ key, scale, tempo }) {
-    document.querySelector('#songInfo').textContent =
-      `[chat jam] ${key} ${scale} · ${tempo} bpm ·`;
+  setMetadata() {
+    document.querySelector('#songInfo').textContent = 'Chat Jam';
   }
 
   setConnection(connected, label = '') {
@@ -167,7 +190,7 @@ export class OverlayView {
       this.countTimer = setTimeout(() => count.classList.remove('count-pop'), 380);
     }
     this.lastCount = layers.length;
-    document.querySelector('#leader').textContent = leader ? `[leader] ${leader}` : '';
+    document.querySelector('#leader').textContent = leader ? `Top jammer: ${leader}` : '';
     this.renderGrid(layers);
 
     const slots = Array.from({ length: 8 }, (_, index) => {
@@ -196,11 +219,14 @@ export class OverlayView {
       slot.style.setProperty('--idle-phase', `${index * -0.41}s`);
       slot.style.setProperty('--disc-tint', safeColor(layer.color));
       const instrument = INSTRUMENTS[layer.instrument] ?? 'sound';
-      const art = createInstrumentArt(instrument);
       const joined = transitions.joined.some((candidate) => candidate.id === layer.id);
+      const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
+      const art = createInstrumentArt(instrument, {
+        join: joined,
+        joinDelay: replaced ? 180 : 0,
+      });
       if (joined) {
         slot.classList.add('joining');
-        const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
         if (replaced) slot.classList.add('replacement-join');
       }
       slot.setAttribute('aria-label', `${layer.userName}, ${instrument} layer`);
@@ -217,11 +243,17 @@ export class OverlayView {
       slot.append(art, ...(name ? [name] : []), instrumentLabel);
       return slot;
     });
+    for (const slot of oldSlots.values()) {
+      const art = slot.slot.querySelector('.instrument-art');
+      if (art) disposeRive(art.riveController);
+    }
     this.band.replaceChildren(...slots);
     for (const removed of transitions.removed) {
       const old = oldSlots.get(removed.id);
       if (!old) continue;
       const exit = old.slot.cloneNode(true);
+      exit.querySelector('.rive-canvas')?.remove();
+      exit.querySelector('.instrument-art')?.classList.remove('rive-ready');
       const oldRect = old.rect;
       exit.className = 'band-slot exit-slot';
       exit.removeAttribute('data-id');
@@ -269,6 +301,7 @@ export class OverlayView {
     const slot = this.band.querySelector(`[data-id="${CSS.escape(layer.id)}"]`);
     if (slot) {
       const instrument = INSTRUMENTS[layer.instrument] ?? 'vibe';
+      triggerRive(slot.querySelector('.instrument-art')?.riveController, 'hit');
       clearTimeout(this.hitTimers.get(slot));
       slot.classList.remove('hit', `hit-${instrument}`);
       void slot.offsetWidth;
@@ -307,6 +340,7 @@ export class OverlayView {
   setReducedMotion(enabled) {
     this.reducedMotion = enabled;
     document.body.classList.toggle('reduced', enabled);
+    setRiveReducedMotion(enabled);
   }
 }
 

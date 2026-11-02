@@ -1,3 +1,5 @@
+import { attachRiveArt, triggerRive } from '../rive-art.js';
+
 export class DropSequence {
   constructor({ engine, root, title, credits, names, panel, stage }) {
     this.engine = engine;
@@ -11,6 +13,17 @@ export class DropSequence {
     this.fadeTimer = null;
     this.buildTimers = [];
     this.confetti = root.querySelector('#confetti');
+    this.riveCanvas = document.createElement('canvas');
+    this.riveCanvas.className = 'drop-rive-canvas';
+    this.riveCanvas.setAttribute('aria-hidden', 'true');
+    this.root.append(this.riveCanvas);
+    this.riveController = attachRiveArt(
+      this.riveCanvas,
+      '/rive/drop.riv',
+      'Drop',
+      'DropCelebration',
+      () => this.root.classList.add('rive-ready'),
+    );
   }
 
   play(contributors, tempo, layers = []) {
@@ -19,7 +32,13 @@ export class DropSequence {
     this.buildTimers.forEach(clearTimeout);
     this.buildTimers = [];
     this.confetti.replaceChildren();
-    this.root.classList.remove('fade-out', 'building', 'slamming');
+    this.root.classList.remove(
+      'fade-out',
+      'building',
+      'slamming',
+      'static',
+      'rive-celebrating',
+    );
     this.panel.classList.remove('drop-building');
     this.root.style.setProperty('--build-speed', '34s');
     this.root.style.setProperty('--star-scale', '0.7');
@@ -40,6 +59,7 @@ export class DropSequence {
       }),
     );
     this.root.classList.add('show');
+    this.riveController.instance?.resizeDrawingSurfaceToCanvas();
     this.title.textContent = 'THE BUILD';
     this.credits.classList.remove('visible');
 
@@ -48,6 +68,7 @@ export class DropSequence {
       document.body.classList.contains('reduced') ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
+      if (this.root.classList.contains('rive-ready')) this.root.classList.add('static');
       this.title.textContent = 'THE DROP';
       this.credits.classList.add('visible');
     } else {
@@ -60,7 +81,14 @@ export class DropSequence {
       () => {
         this.root.classList.add('fade-out');
         this.fadeTimer = setTimeout(() => {
-          this.root.classList.remove('show', 'fade-out', 'building', 'slamming');
+          this.root.classList.remove(
+            'show',
+            'fade-out',
+            'building',
+            'slamming',
+            'static',
+            'rive-celebrating',
+          );
           this.panel.classList.remove('drop-building');
           this.confetti.replaceChildren();
         }, 700);
@@ -94,6 +122,11 @@ export class DropSequence {
   slam() {
     this.root.classList.remove('building');
     this.root.classList.add('slamming');
+    this.riveController.instance?.resizeDrawingSurfaceToCanvas();
+    if (this.root.classList.contains('rive-ready') && this.riveController.instance) {
+      this.root.classList.add('rive-celebrating');
+      triggerRive(this.riveController, 'celebrate');
+    }
     this.panel.classList.remove('drop-building');
     this.stage.classList.add('screen-shake');
     this.title.textContent = 'THE DROP';

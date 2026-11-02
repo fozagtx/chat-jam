@@ -1,6 +1,8 @@
 import { renderSong } from './audio/synth.js';
 import { encodeWav } from './wav.js';
 import { connectOverlaySocket } from './socket.js';
+import { disposeRive, setRiveReducedMotion } from './rive-art.js';
+import { triggerRive } from './rive-art.js';
 import {
   createInstrumentArt,
   emptySlotCommand,
@@ -27,6 +29,15 @@ let activityEntries = [];
 let previousLayers = [];
 let countTimer = null;
 
+function applyDashboardReducedMotion() {
+  document.body.classList.toggle(
+    'reduced',
+    Boolean(config?.reducedMotion) ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  setRiveReducedMotion(document.body.classList.contains('reduced'));
+}
+
 function renderShell() {
   sidebar.innerHTML = `
     <div class="sidebar-brand"><span class="brand-mark">cj</span><span class="brand-name">chat jam</span></div>
@@ -38,7 +49,7 @@ function renderShell() {
     <div class="sidebar-footer"><span class="sidebar-sticker" aria-hidden="true">✳</span><span class="nav-label">Your chat is the band.</span></div>`;
 
   topbar.innerHTML = `
-    <div class="topbar-left"><button id="mobileMenu" class="mobile-menu" type="button" aria-label="Open navigation">☰</button><span class="eyebrow">[${titles[page] ?? 'live'}]</span><span class="topbar-separator">/</span><strong>Chat Jam</strong></div>
+    <div class="topbar-left"><button id="mobileMenu" class="mobile-menu" type="button" aria-label="Open navigation">☰</button><span class="eyebrow">${titles[page] ?? 'Live'}</span><span class="topbar-separator">/</span><strong>Chat Jam</strong></div>
     <div class="topbar-right"><span id="twitchState" class="connection-state"><i></i><span>Not connected to Twitch</span></span><span id="streamState" class="stream-badge unknown">UNKNOWN</span><span class="topbar-layer-count"><span id="topLayerCount">0</span>/8</span><button id="connect" class="button button-primary topbar-connect">Connect with Twitch</button><p id="clientNotice" class="client-notice hidden">Twitch Client ID not set in src/config.ts</p></div>`;
 
   const saved = localStorage.getItem('chat-jam-sidebar-collapsed') === 'true';
@@ -141,8 +152,7 @@ function renderBand(layers = []) {
   for (const layer of layers)
     counts.set(layer.userName, (counts.get(layer.userName) ?? 0) + 1);
   const leader = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  $('#dashboardLeader').textContent = leader ? `[leader] ${leader}` : '[leader] none';
-  $('#liveSongInfo').textContent = `${config.key} ${config.scale} · ${config.tempo} bpm`;
+  $('#dashboardLeader').textContent = leader ? `Top jammer: ${leader}` : '';
   const slots = Array.from({ length: 8 }, (_, index) => {
     const layer = layers[index];
     if (!layer) {
@@ -162,13 +172,21 @@ function renderBand(layers = []) {
       .map((slot) => [slot.dataset.id, { slot, rect: slot.getBoundingClientRect() }]),
   );
   const oldBandRect = band.getBoundingClientRect();
+  for (const old of oldSlots.values()) {
+    disposeRive(old.slot.querySelector('.instrument-art')?.riveController);
+  }
   band.innerHTML = slots.join('');
   for (const slot of band.querySelectorAll('.dashboard-band-slot[data-id]')) {
     const layer = layers.find((candidate) => candidate.id === slot.dataset.id);
-    slot
-      .querySelector('.instrument-art')
-      .replaceWith(createInstrumentArt(layer.instrument));
-    if (transitions.joined.some((candidate) => candidate.id === layer.id)) {
+    const joined = transitions.joined.some((candidate) => candidate.id === layer.id);
+    const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
+    slot.querySelector('.instrument-art').replaceWith(
+      createInstrumentArt(layer.instrument, {
+        join: joined,
+        joinDelay: replaced ? 180 : 0,
+      }),
+    );
+    if (joined) {
       slot.classList.add('joining');
       if (transitions.replacements.some((pair) => pair.to.id === layer.id))
         slot.classList.add('replacement-join');
@@ -179,6 +197,8 @@ function renderBand(layers = []) {
     const old = oldSlots.get(removed.id);
     if (!old) continue;
     const exit = old.slot.cloneNode(true);
+    exit.querySelector('.rive-canvas')?.remove();
+    exit.querySelector('.instrument-art')?.classList.remove('rive-ready');
     const oldRect = old.rect;
     exit.className = 'dashboard-band-slot exit-slot';
     exit.removeAttribute('data-id');
@@ -208,6 +228,7 @@ function animateDashboardBeat(step, delayMs = 0) {
         void slot.offsetWidth;
         slot.style.setProperty('--hit-duration', `${duration}ms`);
         slot.classList.add('hit', hitClass);
+        triggerRive(slot.querySelector('.instrument-art')?.riveController, 'hit');
         setTimeout(() => slot.classList.remove('hit', hitClass), duration);
       }
     },
@@ -271,6 +292,7 @@ async function syncServerState() {
     fetch('/api/clips').then((response) => response.json()),
   ]);
   config = nextConfig;
+  applyDashboardReducedMotion();
   const mergedActivity = new Map(
     [...recentActivity, ...activityEntries].map((entry) => [entry.id, entry]),
   );
@@ -295,11 +317,6 @@ function populateSettings() {
   $('#tempo').value = config.tempo;
   $('#volume').value = Math.round(config.volume * 100);
   $('#reducedMotion').checked = Boolean(config.reducedMotion);
-  document.body.classList.toggle(
-    'reduced',
-    Boolean(config.reducedMotion) ||
-      matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
   updateSliderLabels();
 }
 
@@ -403,10 +420,16 @@ async function downloadSong() {
       config.layers = [];
       return;
     }
-    const rendered = await renderSong(song.layers, song.tempo, song.volume);
+    const rendered = await renderSong(
+      song.layers,
+      song.tempo,
+      song.volume,
+      4,
+      song.key,
+      song.scale,
+    );
     const credits = [
       "Chat Jam · tonight's song",
-      `Key: ${song.key} ${song.scale} · ${song.tempo} BPM`,
       'Contributors:',
       ...song.contributors.map((name) => `- ${name}`),
       '',
@@ -457,6 +480,10 @@ function setupOverlayPage() {
 }
 
 async function initialize() {
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener(
+    'change',
+    applyDashboardReducedMotion,
+  );
   renderShell();
   $('#connect').addEventListener('click', connectTwitch);
   await handleCallback();
@@ -502,13 +529,8 @@ async function initialize() {
         updateExportState();
       } else if (event.type === 'settings') {
         config = { ...config, ...event };
-        document.body.classList.toggle(
-          'reduced',
-          Boolean(config.reducedMotion) ||
-            matchMedia('(prefers-reduced-motion: reduce)').matches,
-        );
+        applyDashboardReducedMotion();
         if ($('#key')) populateSettings();
-        if ($('#liveSongInfo')) renderBand(config.layers);
       } else if (event.type === 'activity') {
         receiveActivity(event.activity);
       } else if (event.type === 'beat') {

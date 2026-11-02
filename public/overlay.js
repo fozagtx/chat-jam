@@ -1,10 +1,11 @@
 import { shouldReduceMotion } from './reduced-motion.js';
 import { AudioEngine } from './audio/audio-engine.js';
-import { noteFrequency } from './audio/synth.js';
+import { chordPadNotes, noteFrequency } from './audio/synth.js';
 import { LookaheadScheduler } from './audio/scheduler.js';
 import { DropSequence } from './audio/drop.js';
 import { OverlayView } from './overlay-view.js';
 import { connectOverlaySocket } from './socket.js';
+import { secondsPerBeat } from './scheduler.js';
 
 const view = new OverlayView();
 const vibeDisabledNotice = '!vibe is off: OPENAI_API_KEY is not set';
@@ -22,6 +23,12 @@ const scheduler = new LookaheadScheduler({
   getTempo: () => tempo,
   onStep: (step, audioTime) => {
     const delayMs = Math.max(0, (audioTime - engine.context.currentTime) * 1000);
+    if (
+      step === 0 &&
+      layers.some((layer) => ['bass', 'melody'].includes(layer.instrument))
+    ) {
+      engine.pad(chordPadNotes(key, scale), audioTime, secondsPerBeat(tempo) * 4);
+    }
     setTimeout(() => {
       view.showBeat(step);
       view.setCaption(layers, step);

@@ -348,31 +348,48 @@
 .dashboard-band-slot {
   --idle-phase: 0s;
 }
-.dashboard-band-slot .instrument-art {
+.dashboard-band-slot .instrument-art:not(.rive-ready) {
   animation: art-float 3.4s ease-in-out var(--idle-phase) infinite;
 }
-.dashboard-band-slot.joining .instrument-art {
+.instrument-art .rive-canvas {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+}
+.instrument-art.rive-ready {
+  background: transparent;
+  border: 0 !important;
+  clip-path: none;
+  outline: 3px solid var(--disc-tint, #fff23a);
+  outline-offset: -1px;
+  border-radius: 50%;
+}
+.instrument-art.rive-ready > span {
+  display: none;
+}
+.dashboard-band-slot.joining .instrument-art:not(.rive-ready) {
   animation: sticker-slap 460ms cubic-bezier(0.18, 1.5, 0.36, 1) both;
 }
-.dashboard-band-slot.replacement-join .instrument-art {
+.dashboard-band-slot.replacement-join .instrument-art:not(.rive-ready) {
   animation-delay: 180ms;
 }
 .dashboard-band-slot .viewer-name.chip-joining {
   animation: chip-drop 460ms cubic-bezier(0.18, 1.5, 0.36, 1) both;
 }
-.dashboard-band-slot.hit-kick .instrument-art {
+.dashboard-band-slot.hit-kick .instrument-art:not(.rive-ready) {
   animation: kick-punch var(--hit-duration, 240ms) cubic-bezier(0.18, 1.55, 0.34, 1);
 }
-.dashboard-band-slot.hit-snare .instrument-art {
+.dashboard-band-slot.hit-snare .instrument-art:not(.rive-ready) {
   animation: snare-snap var(--hit-duration, 180ms) cubic-bezier(0.2, 1.4, 0.35, 1);
 }
-.dashboard-band-slot.hit-hat .instrument-art {
+.dashboard-band-slot.hit-hat .instrument-art:not(.rive-ready) {
   animation: hat-shake var(--hit-duration, 130ms) ease-in-out;
 }
-.dashboard-band-slot.hit-bass .instrument-art {
+.dashboard-band-slot.hit-bass .instrument-art:not(.rive-ready) {
   animation: bass-thump var(--hit-duration, 350ms) cubic-bezier(0.2, 1.3, 0.35, 1);
 }
-.dashboard-band-slot.hit-melody .instrument-art {
+.dashboard-band-slot.hit-melody .instrument-art:not(.rive-ready) {
   animation: melody-pop var(--hit-duration, 280ms) cubic-bezier(0.2, 1.4, 0.35, 1);
 }
 .dashboard-band-slot.hit-melody .art-petal {
@@ -387,7 +404,7 @@
 .dashboard-band-slot.hit-kick .art-shockwave {
   animation: shockwave var(--hit-duration, 240ms) ease-out;
 }
-.dashboard-band-slot.hit-vibe .instrument-art {
+.dashboard-band-slot.hit-vibe .instrument-art:not(.rive-ready) {
   animation: kick-punch var(--hit-duration, 280ms) cubic-bezier(0.18, 1.55, 0.34, 1);
 }
 .count-pill.one-away {

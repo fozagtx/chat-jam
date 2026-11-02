@@ -176,10 +176,16 @@ downloadButton.onclick = async () => {
     setLayerCount(song.layers.length);
     if (song.layers.length === 0) return;
 
-    const rendered = await renderSong(song.layers, song.tempo, song.volume);
+    const rendered = await renderSong(
+      song.layers,
+      song.tempo,
+      song.volume,
+      4,
+      song.key,
+      song.scale,
+    );
     const credits = [
       "Chat Jam · tonight's song",
-      `Key: ${song.key} ${song.scale} · ${song.tempo} BPM`,
       'Contributors:',
       ...song.contributors.map((name) => `- ${name}`),
       '',

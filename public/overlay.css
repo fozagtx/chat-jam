@@ -169,6 +169,23 @@ button {
   width: min(100%, 70px);
   border: 2px solid #fff;
 }
+.instrument-art .rive-canvas {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+}
+.instrument-art.rive-ready {
+  background: transparent;
+  border: 0 !important;
+  clip-path: none;
+  outline: 3px solid var(--disc-tint, #fff23a);
+  outline-offset: -1px;
+  border-radius: 50%;
+}
+.instrument-art.rive-ready > span {
+  display: none;
+}
 .empty-disc {
   width: min(100%, 70px);
   aspect-ratio: 1;
@@ -351,6 +368,32 @@ button {
   transform: rotate(-8deg);
   animation: starspin var(--build-speed, 34s) linear infinite;
 }
+.drop-rive-canvas {
+  position: absolute;
+  z-index: 3;
+  width: min(88vw, 1000px);
+  height: min(42vw, 330px);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+#drop.rive-ready .drop-rive-canvas {
+  opacity: 0;
+}
+#drop.rive-celebrating .drop-rive-canvas,
+#drop.rive-ready.static .drop-rive-canvas {
+  opacity: 1;
+}
+#drop.rive-celebrating .burst,
+#drop.rive-ready.static .burst,
+#drop.rive-celebrating .drop-art,
+#drop.rive-celebrating .drop-starburst,
+#drop.rive-ready.static .drop-art,
+#drop.rive-ready.static .drop-starburst {
+  opacity: 0;
+}
+#drop .credits {
+  z-index: 4;
+}
 .drop-art span {
   font-size: clamp(65px, 11vw, 150px);
   font-weight: 800;
@@ -445,7 +488,7 @@ body.reduced #flash {
 .band-slot {
   --idle-phase: 0s;
 }
-.band-slot .instrument-art {
+.band-slot .instrument-art:not(.rive-ready) {
   animation: art-float 3.4s ease-in-out var(--idle-phase) infinite;
 }
 .empty-disc {
@@ -463,12 +506,12 @@ body.reduced #flash {
 .empty-disc span {
   position: relative;
 }
-.band-member.joining .instrument-art,
-.dashboard-band-slot.joining .instrument-art {
+.band-member.joining .instrument-art:not(.rive-ready),
+.dashboard-band-slot.joining .instrument-art:not(.rive-ready) {
   animation: sticker-slap 460ms cubic-bezier(0.18, 1.5, 0.36, 1) both;
 }
-.band-member.replacement-join .instrument-art,
-.dashboard-band-slot.replacement-join .instrument-art {
+.band-member.replacement-join .instrument-art:not(.rive-ready),
+.dashboard-band-slot.replacement-join .instrument-art:not(.rive-ready) {
   animation-delay: 180ms;
 }
 .viewer-name.chip-joining {
@@ -480,19 +523,19 @@ body.reduced #flash {
   pointer-events: none;
   animation: spin-out 180ms ease-in forwards;
 }
-.hit-kick .instrument-art {
+.hit-kick .instrument-art:not(.rive-ready) {
   animation: kick-punch var(--hit-duration, 240ms) cubic-bezier(0.18, 1.55, 0.34, 1);
 }
 .hit-kick .art-shockwave {
   animation: shockwave var(--hit-duration, 240ms) ease-out;
 }
-.hit-snare .instrument-art {
+.hit-snare .instrument-art:not(.rive-ready) {
   animation: snare-snap var(--hit-duration, 180ms) cubic-bezier(0.2, 1.4, 0.35, 1);
 }
-.hit-hat .instrument-art {
+.hit-hat .instrument-art:not(.rive-ready) {
   animation: hat-shake var(--hit-duration, 130ms) ease-in-out;
 }
-.hit-bass .instrument-art {
+.hit-bass .instrument-art:not(.rive-ready) {
   animation: bass-thump var(--hit-duration, 350ms) cubic-bezier(0.2, 1.3, 0.35, 1);
 }
 .hit-bass .art-ripple {
@@ -501,7 +544,7 @@ body.reduced #flash {
 .hit-bass .ripple-two {
   animation-delay: 70ms;
 }
-.hit-melody .instrument-art {
+.hit-melody .instrument-art:not(.rive-ready) {
   animation: melody-pop var(--hit-duration, 280ms) cubic-bezier(0.2, 1.4, 0.35, 1);
 }
 .hit-melody .art-petal {
@@ -519,7 +562,7 @@ body.reduced #flash {
 .hit-melody .art-petal:nth-child(5) {
   --petal-index: 4;
 }
-.hit-vibe .instrument-art {
+.hit-vibe .instrument-art:not(.rive-ready) {
   animation: kick-punch var(--hit-duration, 280ms) cubic-bezier(0.18, 1.55, 0.34, 1);
 }
 .art-shockwave,

@@ -1,0 +1,4 @@
+public/rive/*.js
+public/rive/*.wasm
+public/rive/*.riv
+public/rive/previews/*
