@@ -121,7 +121,7 @@ function renderBand(layers = []) {
   for (const layer of layers)
     counts.set(layer.userName, (counts.get(layer.userName) ?? 0) + 1);
   const leader = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  $('#dashboardLeader').textContent = leader ? `[leader] ${leader}` : '[leader] —';
+  $('#dashboardLeader').textContent = leader ? `[leader] ${leader}` : '[leader] none';
   $('#liveSongInfo').textContent = `${config.key} ${config.scale} · ${config.tempo} bpm`;
   const slots = Array.from({ length: 8 }, (_, index) => {
     const layer = layers[index];
@@ -288,7 +288,7 @@ function updateExportState() {
   download.disabled = !config.layers.length || isRendering;
   const hint = $('#downloadHint');
   if (!config.layers.length && !isRendering) {
-    hint.textContent = "Nothing to download yet — chat hasn't added a sound";
+    hint.textContent = "Nothing to download yet: chat hasn't added a sound";
     hint.classList.remove('hidden');
   } else if (!isRendering && hint.textContent.startsWith('Nothing to download')) {
     hint.classList.add('hidden');
@@ -322,14 +322,14 @@ async function downloadSong() {
     }
     const rendered = await renderSong(song.layers, song.tempo, song.volume);
     const credits = [
-      "Chat Jam — tonight's song",
+      "Chat Jam · tonight's song",
       `Key: ${song.key} ${song.scale} · ${song.tempo} BPM`,
       'Contributors:',
       ...song.contributors.map((name) => `- ${name}`),
       '',
     ].join('\n');
     const wav = encodeWav(rendered, {
-      INAM: "Chat Jam — tonight's song",
+      INAM: "Chat Jam · tonight's song",
       IART: 'Chat Jam community',
       ICMT: credits,
     });
@@ -360,7 +360,7 @@ function setupOverlayPage() {
       await navigator.clipboard.writeText(url);
       $('#copyFeedback').textContent = 'Copied';
     } catch {
-      $('#copyFeedback').textContent = 'Copy unavailable — select the URL above';
+      $('#copyFeedback').textContent = 'Copy unavailable. Select the URL above';
     }
   });
   const viewport = $('#previewViewport');

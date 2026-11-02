@@ -7,7 +7,7 @@ import { OverlayView } from './overlay-view.js';
 import { connectOverlaySocket } from './socket.js';
 
 const view = new OverlayView();
-const vibeDisabledNotice = '!vibe is off — OPENAI_API_KEY is not set';
+const vibeDisabledNotice = '!vibe is off: OPENAI_API_KEY is not set';
 const initial = await fetch('/api/config').then((response) => response.json());
 view.setConnection(initial.connected, initial.login);
 let layers = initial.layers ?? [];
@@ -85,7 +85,7 @@ connectOverlaySocket(
     } else if (message.type === 'notice') {
       if (message.text !== vibeDisabledNotice) view.showNotice(message.text);
     } else if (message.type === 'slowdown') {
-      view.showNotice('Slow down — one sound every 5 seconds');
+      view.showNotice('Slow down: one sound every 5 seconds');
     } else if (message.type === 'hype') {
       playHype(message, engine, view);
     } else if (message.type === 'status') {

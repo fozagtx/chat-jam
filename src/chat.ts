@@ -131,7 +131,7 @@ export class ChatJam {
       if (result && 'disabled' in result) {
         this.options.broadcast({
           type: 'notice',
-          text: '!vibe is off — OPENAI_API_KEY is not set',
+          text: '!vibe is off: OPENAI_API_KEY is not set',
         });
       } else if (result) {
         this.addLayer(result.layer);

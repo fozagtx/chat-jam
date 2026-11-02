@@ -74,7 +74,7 @@ let connected = config.connected;
 let currentLogin = config.login;
 let layerCount = config.layers.length;
 let isRendering = false;
-let lastCommand = '—';
+let lastCommand = 'none';
 
 function updateStatus() {
   $('#status').textContent =
@@ -86,7 +86,7 @@ function setLayerCount(count) {
   downloadButton.disabled = count === 0 || isRendering;
   downloadHint.classList.toggle('hidden', count > 0);
   if (count === 0) {
-    downloadHint.textContent = "Nothing to download yet — chat hasn't added a sound";
+    downloadHint.textContent = "Nothing to download yet: chat hasn't added a sound";
     clearCreditsLink();
   }
   updateStatus();
@@ -178,14 +178,14 @@ downloadButton.onclick = async () => {
 
     const rendered = await renderSong(song.layers, song.tempo, song.volume);
     const credits = [
-      "Chat Jam — tonight's song",
+      "Chat Jam · tonight's song",
       `Key: ${song.key} ${song.scale} · ${song.tempo} BPM`,
       'Contributors:',
       ...song.contributors.map((name) => `- ${name}`),
       '',
     ].join('\n');
     const wav = encodeWav(rendered, {
-      INAM: "Chat Jam — tonight's song",
+      INAM: "Chat Jam · tonight's song",
       IART: 'Chat Jam community',
       ICMT: credits,
     });
