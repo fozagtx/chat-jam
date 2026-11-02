@@ -77,7 +77,11 @@ connectOverlaySocket(
       engine.setVolume(message.volume);
       view.setMetadata(message);
     } else if (message.type === 'drop') {
-      drop.play(message.contributors ?? [], message.tempo ?? tempo);
+      drop.play(
+        message.contributors ?? [],
+        message.tempo ?? tempo,
+        message.layers ?? layers,
+      );
     } else if (message.type === 'notice') {
       if (message.text !== vibeDisabledNotice) view.showNotice(message.text);
     } else if (message.type === 'slowdown') {

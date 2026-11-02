@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Chat Jam — overlay</title>
     <link rel="stylesheet" href="/overlay.css" />
+    <link rel="stylesheet" href="/instrument-art.css" />
   </head>
   <body>
     <main id="stage" aria-label="Chat Jam stream overlay">
@@ -43,9 +44,13 @@
 
       <div id="flash" aria-hidden="true"></div>
       <div id="drop" aria-live="polite">
-        <div class="drop-disc cd-disc" aria-hidden="true"><div class="cd-hub"></div></div>
-        <div class="burst">The build</div>
-        <div class="credits">Made by <span id="names"></span></div>
+        <div class="drop-starburst" aria-hidden="true"></div>
+        <div class="drop-art" aria-hidden="true"><span>✳</span></div>
+        <div class="burst">THE BUILD</div>
+        <div class="credits">
+          <span class="made-by">Made by</span>
+          <div id="names"></div>
+        </div>
       </div>
       <button id="start" class="button button-primary hidden">
         Click to start audio

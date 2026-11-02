@@ -1,7 +1,7 @@
 import { renderSong } from './audio/synth.js';
 import { encodeWav } from './wav.js';
 import { connectOverlaySocket } from './socket.js';
-import { viewerNameLabel } from './overlay-view.js';
+import { emptySlotCommand, viewerNameLabel } from './overlay-view.js';
 
 const $ = (selector) => document.querySelector(selector);
 const page = document.body.dataset.page;
@@ -27,7 +27,7 @@ function renderShell() {
       ${routes.map(({ path: route, label, icon }) => `<a class="sidebar-link ${route === location.pathname || (route === '/' && page === 'live') ? 'active' : ''}" href="${route}" title="${label}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span></a>`).join('')}
     </nav>
     <a class="sidebar-overlay-link" href="/overlay" target="_blank" rel="noreferrer"><span class="nav-icon">↗</span><span class="nav-label">Open OBS overlay</span></a>
-    <div class="sidebar-footer"><span class="mini-disc" aria-hidden="true"></span><span class="nav-label">Your chat is the band.</span></div>`;
+    <div class="sidebar-footer"><span class="sidebar-sticker" aria-hidden="true">✳</span><span class="nav-label">Your chat is the band.</span></div>`;
 
   topbar.innerHTML = `
     <div class="topbar-left"><button id="mobileMenu" class="mobile-menu" type="button" aria-label="Open navigation">☰</button><span class="eyebrow">[${titles[page] ?? 'live'}]</span><span class="topbar-separator">/</span><strong>Chat Jam</strong></div>
@@ -62,7 +62,9 @@ function updateTopbar() {
   connection.classList.toggle('connected', config.connected);
   connection.querySelector('span').textContent = config.connected
     ? `Connected as ${config.login}`
-    : 'Not connected to Twitch';
+    : matchMedia('(max-width: 440px)').matches
+      ? 'Not connected'
+      : 'Not connected to Twitch';
   const streamStatus = config.streamStatus ?? 'unknown';
   $('#streamState').textContent =
     streamStatus === 'unknown' ? 'unknown' : streamStatus.toUpperCase();
@@ -124,13 +126,13 @@ function renderBand(layers = []) {
   const slots = Array.from({ length: 8 }, (_, index) => {
     const layer = layers[index];
     if (!layer) {
-      return `<div class="dashboard-band-slot empty" aria-label="Empty band slot ${index + 1}"><div class="dashboard-empty-disc"></div><span class="dashboard-instrument">empty</span></div>`;
+      return `<div class="dashboard-band-slot empty" aria-label="Empty band slot ${index + 1}, type ${emptySlotCommand(index)}"><div class="dashboard-empty-disc">${emptySlotCommand(index)}</div></div>`;
     }
     const label = viewerNameLabel(layers, layer, index);
     const color = /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(layer.color)
       ? layer.color
-      : '#b7c4c6';
-    return `<div class="dashboard-band-slot" style="--disc-tint:${color}" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="dashboard-cd"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
+      : '#fff23a';
+    return `<div class="dashboard-band-slot" style="--disc-tint:${color}" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="instrument-art art-${escapeAttribute(layer.instrument)}"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
   });
   $('#dashboardBand').innerHTML = slots.join('');
 }

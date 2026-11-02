@@ -5,6 +5,8 @@ export interface CaptionLayer {
   steps: number[];
 }
 
+export function emptySlotCommand(index: number): string;
+
 export function viewerNameLabel(
   layers: CaptionLayer[],
   layer: CaptionLayer,

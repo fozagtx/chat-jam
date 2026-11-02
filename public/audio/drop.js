@@ -9,11 +9,22 @@ export class DropSequence {
     this.fadeTimer = null;
   }
 
-  play(contributors, tempo) {
+  play(contributors, tempo, layers = []) {
     clearTimeout(this.hideTimer);
     clearTimeout(this.fadeTimer);
     this.root.classList.remove('fade-out');
-    this.names.textContent = contributors.join(' · ') || 'THE CHAT';
+    this.names.replaceChildren(
+      ...contributors.map((name) => {
+        const sticker = document.createElement('span');
+        sticker.className = 'credit-sticker';
+        sticker.textContent = name;
+        const color = layers.find((layer) => layer.userName === name)?.color;
+        if (/^#(?:[\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i.test(color ?? '')) {
+          sticker.style.setProperty('--sticker-color', color);
+        }
+        return sticker;
+      }),
+    );
     this.root.classList.add('show');
     this.title.textContent = 'THE BUILD';
     this.credits.classList.remove('visible');

@@ -95,7 +95,7 @@ export class ChatJam {
       id: crypto.randomUUID(),
       userId,
       userName,
-      color: event.color || '#9b59ff',
+      color: event.color || '#fff23a',
       instrument: message.instrument,
       steps: message.pattern,
       notes:
@@ -124,7 +124,7 @@ export class ChatJam {
         text,
         userId,
         userName,
-        event.color || '#9b59ff',
+        event.color || '#fff23a',
         settings.key,
         settings.scale,
       );

@@ -9,6 +9,10 @@ const INSTRUMENTS = {
 const EMPTY_SLOT_COMMANDS = ['!kick', '!snare', '!hat', '!bass 1', '!melody C E G'];
 const DRUM_INSTRUMENTS = new Set(['kick', 'snare', 'hat']);
 
+export function emptySlotCommand(index) {
+  return EMPTY_SLOT_COMMANDS[index % EMPTY_SLOT_COMMANDS.length];
+}
+
 export function viewerNameLabel(layers, layer, index) {
   const viewerKey = layer.userId || layer.userName;
   const viewerLayers = layers.filter(
@@ -103,7 +107,7 @@ export class OverlayView {
       if (!layer) {
         const emptySlot = document.createElement('div');
         emptySlot.className = 'band-slot';
-        const command = EMPTY_SLOT_COMMANDS[index % EMPTY_SLOT_COMMANDS.length];
+        const command = emptySlotCommand(index);
         emptySlot.setAttribute(
           'aria-label',
           `Empty band slot ${index + 1}, type ${command}`,
@@ -119,23 +123,21 @@ export class OverlayView {
       slot.className = 'band-slot band-member';
       slot.dataset.id = layer.id;
       slot.style.setProperty('--disc-tint', safeColor(layer.color));
-      const disc = document.createElement('div');
-      disc.className = 'cd-disc';
-      disc.setAttribute('aria-hidden', 'true');
-      slot.setAttribute(
-        'aria-label',
-        `${layer.userName}, ${INSTRUMENTS[layer.instrument] ?? 'sound'} layer`,
-      );
+      const instrument = INSTRUMENTS[layer.instrument] ?? 'sound';
+      const art = document.createElement('div');
+      art.className = `instrument-art art-${instrument}`;
+      art.setAttribute('aria-hidden', 'true');
+      slot.setAttribute('aria-label', `${layer.userName}, ${instrument} layer`);
       const label = viewerNameLabel(layers, layer, index);
       const name = label ? document.createElement('span') : null;
       if (name) {
         name.className = 'viewer-name';
         name.textContent = label;
       }
-      const instrument = document.createElement('span');
-      instrument.className = 'instrument-label';
-      instrument.textContent = INSTRUMENTS[layer.instrument] ?? 'sound';
-      slot.append(disc, ...(name ? [name] : []), instrument);
+      const instrumentLabel = document.createElement('span');
+      instrumentLabel.className = 'instrument-label';
+      instrumentLabel.textContent = instrument;
+      slot.append(art, ...(name ? [name] : []), instrumentLabel);
       return slot;
     });
     this.band.replaceChildren(...slots);
@@ -198,5 +200,5 @@ export class OverlayView {
 function safeColor(color) {
   return /^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(color)
     ? color
-    : '#b7c4c6';
+    : '#fff23a';
 }

@@ -1,0 +1,127 @@
+.instrument-art {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 72px;
+  aspect-ratio: 1;
+  background: var(--art-fill, #fff23a);
+  filter: drop-shadow(3px 4px 0 #000);
+  transform-origin: center;
+}
+.art-kick {
+  clip-path: polygon(
+    50% 0%,
+    58% 27%,
+    81% 8%,
+    75% 35%,
+    100% 34%,
+    82% 50%,
+    100% 66%,
+    74% 67%,
+    82% 94%,
+    58% 76%,
+    50% 100%,
+    42% 76%,
+    18% 94%,
+    26% 67%,
+    0 66%,
+    18% 50%,
+    0 34%,
+    25% 34%,
+    19% 8%,
+    42% 27%
+  );
+  --art-fill: #fff23a;
+}
+.art-snare {
+  width: 68px;
+  clip-path: polygon(
+    50% 0%,
+    62% 34%,
+    98% 18%,
+    79% 50%,
+    100% 78%,
+    63% 70%,
+    50% 100%,
+    37% 70%,
+    0 78%,
+    21% 50%,
+    2% 18%,
+    38% 34%
+  );
+  --art-fill: #ff3ecf;
+}
+.art-hat {
+  width: 70px;
+  clip-path: polygon(
+    0 15%,
+    36% 15%,
+    36% 0,
+    61% 0,
+    61% 15%,
+    100% 15%,
+    100% 42%,
+    66% 42%,
+    66% 58%,
+    100% 58%,
+    100% 85%,
+    57% 85%,
+    57% 100%,
+    34% 100%,
+    34% 85%,
+    0 85%,
+    0 58%,
+    33% 58%,
+    33% 42%,
+    0 42%
+  );
+  --art-fill: #00d2ff;
+}
+.art-bass {
+  overflow: hidden;
+  border: 8px solid #000;
+  border-radius: 42% 58% 48% 52% / 57% 42% 58% 43%;
+  background: repeating-radial-gradient(circle at 50% 50%, #73ff4a 0 7px, #000 8px 11px);
+  --art-fill: #73ff4a;
+}
+.art-melody {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #000 0 12%, transparent 13%),
+    radial-gradient(ellipse at 50% 16%, #fff23a 0 20%, transparent 21%),
+    radial-gradient(ellipse at 83% 38%, #ff3ecf 0 20%, transparent 21%),
+    radial-gradient(ellipse at 71% 78%, #00d2ff 0 20%, transparent 21%),
+    radial-gradient(ellipse at 29% 78%, #fff23a 0 20%, transparent 21%),
+    radial-gradient(ellipse at 17% 38%, #73ff4a 0 20%, transparent 21%);
+  --art-fill: #ff3ecf;
+}
+.art-vibe {
+  border-radius: 34% 66% 42% 58% / 57% 35% 65% 43%;
+  border: 5px solid #000;
+  background: conic-gradient(
+    #ff3ecf 0 25%,
+    #fff23a 25% 50%,
+    #00d2ff 50% 75%,
+    #73ff4a 75%
+  );
+  --art-fill: #ff3ecf;
+}
+.band-member.hit .instrument-art {
+  animation: art-bounce 280ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+@keyframes art-bounce {
+  35% {
+    transform: translateY(-9px) rotate(-5deg) scale(1.12);
+  }
+  70% {
+    transform: translateY(2px) rotate(3deg) scale(0.96);
+  }
+}
+body.reduced .instrument-art {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .instrument-art {
+    animation: none !important;
+  }
+}
