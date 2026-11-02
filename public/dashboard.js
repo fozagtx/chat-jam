@@ -398,7 +398,7 @@ function updateExportState() {
   if (!config.layers.length && !isRendering) {
     hint.textContent = "Nothing to download yet: chat hasn't added a sound";
     hint.classList.remove('hidden');
-  } else if (!isRendering && hint.textContent.startsWith('Nothing to download')) {
+  } else if (!isRendering && hint.textContent.trim().startsWith('Nothing to download')) {
     hint.classList.add('hidden');
   }
 }
