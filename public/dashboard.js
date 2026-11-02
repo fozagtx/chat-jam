@@ -162,7 +162,7 @@ function renderBand(layers = []) {
     const color = /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(layer.color)
       ? layer.color
       : '#fff23a';
-    return `<div class="dashboard-band-slot" data-id="${escapeAttribute(layer.id)}" style="--disc-tint:${color};--slot-index:${index};--idle-phase:${index * -0.41}s" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="instrument-art art-${escapeAttribute(layer.instrument)}"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
+    return `<div class="dashboard-band-slot" data-id="${escapeAttribute(layer.id)}" data-instrument="${escapeAttribute(layer.instrument)}" style="--disc-tint:${color};--slot-index:${index};--idle-phase:${index * -0.41}s" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="instrument-art art-${escapeAttribute(layer.instrument)}"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
   });
   const band = $('#dashboardBand');
   const transitions = getLayerTransitions(previousLayers, layers);
@@ -172,20 +172,28 @@ function renderBand(layers = []) {
       .map((slot) => [slot.dataset.id, { slot, rect: slot.getBoundingClientRect() }]),
   );
   const oldBandRect = band.getBoundingClientRect();
-  for (const old of oldSlots.values()) {
-    disposeRive(old.slot.querySelector('.instrument-art')?.riveController);
+  const nextLayers = new Map(layers.map((layer) => [layer.id, layer]));
+  for (const [id, old] of oldSlots) {
+    const next = nextLayers.get(id);
+    const art = old.slot.querySelector('.instrument-art');
+    if (art && (!next || next.instrument !== art.dataset.instrument)) {
+      disposeRive(art.riveController);
+    }
   }
   band.innerHTML = slots.join('');
   for (const slot of band.querySelectorAll('.dashboard-band-slot[data-id]')) {
     const layer = layers.find((candidate) => candidate.id === slot.dataset.id);
     const joined = transitions.joined.some((candidate) => candidate.id === layer.id);
     const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
-    slot.querySelector('.instrument-art').replaceWith(
-      createInstrumentArt(layer.instrument, {
-        join: joined,
-        joinDelay: replaced ? 180 : 0,
-      }),
-    );
+    const previousArt = oldSlots.get(layer.id)?.slot.querySelector('.instrument-art');
+    const art =
+      previousArt?.dataset.instrument === layer.instrument
+        ? previousArt
+        : createInstrumentArt(layer.instrument, {
+            join: joined,
+            joinDelay: replaced ? 180 : 0,
+          });
+    slot.querySelector('.instrument-art').replaceWith(art);
     if (joined) {
       slot.classList.add('joining');
       if (transitions.replacements.some((pair) => pair.to.id === layer.id))

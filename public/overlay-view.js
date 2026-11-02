@@ -40,6 +40,7 @@ export function instrumentHitDuration(instrument, tempo) {
 export function createInstrumentArt(instrument, { join = false, joinDelay = 0 } = {}) {
   const art = document.createElement('div');
   art.className = `instrument-art art-${INSTRUMENTS[instrument] ?? 'vibe'}`;
+  art.dataset.instrument = instrument;
   art.setAttribute('aria-hidden', 'true');
   if (instrument === 'kick') {
     art.append(makeArtPart('art-shockwave'));
@@ -219,12 +220,18 @@ export class OverlayView {
       slot.style.setProperty('--idle-phase', `${index * -0.41}s`);
       slot.style.setProperty('--disc-tint', safeColor(layer.color));
       const instrument = INSTRUMENTS[layer.instrument] ?? 'sound';
+      slot.dataset.instrument = instrument;
       const joined = transitions.joined.some((candidate) => candidate.id === layer.id);
       const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
-      const art = createInstrumentArt(instrument, {
-        join: joined,
-        joinDelay: replaced ? 180 : 0,
-      });
+      const previous = oldSlots.get(layer.id)?.slot;
+      const previousArt = previous?.querySelector('.instrument-art');
+      const art =
+        previousArt?.dataset.instrument === instrument
+          ? previousArt
+          : createInstrumentArt(instrument, {
+              join: joined,
+              joinDelay: replaced ? 180 : 0,
+            });
       if (joined) {
         slot.classList.add('joining');
         if (replaced) slot.classList.add('replacement-join');
@@ -243,9 +250,12 @@ export class OverlayView {
       slot.append(art, ...(name ? [name] : []), instrumentLabel);
       return slot;
     });
-    for (const slot of oldSlots.values()) {
+    for (const [id, slot] of oldSlots) {
+      const next = layers.find((layer) => layer.id === id);
       const art = slot.slot.querySelector('.instrument-art');
-      if (art) disposeRive(art.riveController);
+      if (art && (!next || INSTRUMENTS[next.instrument] !== art.dataset.instrument)) {
+        disposeRive(art.riveController);
+      }
     }
     this.band.replaceChildren(...slots);
     for (const removed of transitions.removed) {

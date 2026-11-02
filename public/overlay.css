@@ -293,9 +293,9 @@ button {
   opacity: 0;
   transition: opacity 700ms ease;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-direction: column;
-  gap: clamp(8px, 2vh, 20px);
+  gap: clamp(18px, 3vh, 32px);
   overflow: hidden;
   background: var(--yellow);
   color: #000;
@@ -304,14 +304,12 @@ button {
 #drop::before {
   content: '';
   position: absolute;
-  inset: -45%;
-  background: repeating-conic-gradient(
-    from 0deg,
-    var(--pink) 0deg 13deg,
-    var(--yellow) 13deg 26deg
-  );
-  opacity: 0.82;
-  animation: starspin var(--build-speed, 34s) linear infinite;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(115, 255, 74, 0.82), transparent 32%),
+    linear-gradient(135deg, var(--yellow), var(--pink) 55%, var(--cyan));
+  opacity: 1;
+  animation: none;
 }
 #drop.show {
   display: flex;
@@ -329,7 +327,10 @@ button {
 }
 .drop-starburst {
   position: absolute;
-  inset: 8%;
+  top: 0;
+  left: calc(50% - min(12vh, 160px));
+  width: min(24vh, 320px);
+  aspect-ratio: 1;
   border: 8px solid #000;
   border-radius: 50%;
   background:
@@ -370,29 +371,26 @@ button {
 }
 .drop-rive-canvas {
   position: absolute;
-  z-index: 3;
-  width: min(88vw, 1000px);
-  height: min(42vw, 330px);
+  z-index: 0;
+  left: 50%;
+  top: 0;
+  width: min(94vw, 1200px);
+  height: min(30vh, 330px);
+  transform: translateX(-50%);
+  clip-path: inset(0 0 50% 0);
+  pointer-events: none;
   opacity: 0;
   transition: opacity 220ms ease;
 }
 #drop.rive-ready .drop-rive-canvas {
-  opacity: 0;
-}
-#drop.rive-celebrating .drop-rive-canvas,
-#drop.rive-ready.static .drop-rive-canvas {
   opacity: 1;
 }
-#drop.rive-celebrating .burst,
-#drop.rive-ready.static .burst,
-#drop.rive-celebrating .drop-art,
-#drop.rive-celebrating .drop-starburst,
-#drop.rive-ready.static .drop-art,
-#drop.rive-ready.static .drop-starburst {
-  opacity: 0;
+#drop.rive-ready .drop-art,
+#drop .drop-art {
+  display: none;
 }
 #drop .credits {
-  z-index: 4;
+  z-index: 3;
 }
 .drop-art span {
   font-size: clamp(65px, 11vw, 150px);
@@ -400,6 +398,8 @@ button {
   line-height: 1;
 }
 .burst {
+  z-index: 3;
+  margin: 30vh 0 0;
   color: #000;
   font-size: clamp(48px, 10vw, 144px);
   font-weight: 800;
@@ -663,7 +663,7 @@ body.reduced #flash {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 4;
+  z-index: 2;
 }
 .confetti-piece {
   position: absolute;

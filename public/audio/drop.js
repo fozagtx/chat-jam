@@ -17,16 +17,16 @@ export class DropSequence {
     this.riveCanvas.className = 'drop-rive-canvas';
     this.riveCanvas.setAttribute('aria-hidden', 'true');
     this.root.append(this.riveCanvas);
-    this.riveController = attachRiveArt(
-      this.riveCanvas,
-      '/rive/drop.riv',
-      'Drop',
-      'DropCelebration',
-      () => this.root.classList.add('rive-ready'),
-    );
+    this.riveController = null;
+    this.riveRequested = false;
   }
 
   play(contributors, tempo, layers = []) {
+    this.loadRive();
+    const prefersReduced =
+      document.body.classList.contains('reduced') ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReduced) this.riveController?.instance?.play();
     clearTimeout(this.hideTimer);
     clearTimeout(this.fadeTimer);
     this.buildTimers.forEach(clearTimeout);
@@ -64,9 +64,6 @@ export class DropSequence {
     this.credits.classList.remove('visible');
 
     const duration = this.engine.drop(tempo);
-    const prefersReduced =
-      document.body.classList.contains('reduced') ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
       if (this.root.classList.contains('rive-ready')) this.root.classList.add('static');
       this.title.textContent = 'THE DROP';
@@ -91,9 +88,31 @@ export class DropSequence {
           );
           this.panel.classList.remove('drop-building');
           this.confetti.replaceChildren();
+          this.riveController?.instance?.pause();
         }, 700);
       },
       duration * 1_000 + 5_000,
+    );
+  }
+
+  loadRive() {
+    if (this.riveRequested) return;
+    this.riveRequested = true;
+    this.riveController = attachRiveArt(
+      this.riveCanvas,
+      '/rive/drop.riv',
+      'Drop',
+      'DropCelebration',
+      (loaded) => {
+        this.root.classList.add('rive-ready');
+        if (
+          !this.root.classList.contains('show') ||
+          document.body.classList.contains('reduced') ||
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+          loaded.instance?.pause();
+        }
+      },
     );
   }
 
