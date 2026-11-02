@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { captionForLayers, viewerNameLabel } from '../public/overlay-view.js';
+import {
+  captionForLayers,
+  getLayerTransitions,
+  instrumentHitDuration,
+  viewerNameLabel,
+} from '../public/overlay-view.js';
 
 const layers = [
   { userId: 'viewer-1', userName: 'xobadad', instrument: 'kick', steps: [0] },
@@ -32,5 +37,25 @@ describe('band viewer labels and captions', () => {
     expect(captionForLayers(repeatedLayers, 0)).toBe(
       'kick · hat · bass + melody by xobadad',
     );
+  });
+
+  it('detects a FIFO replacement while retaining the removed layer for its exit animation', () => {
+    const oldLayers = Array.from({ length: 8 }, (_, index) => ({
+      id: `old-${index}`,
+      userName: `viewer-${index}`,
+      instrument: 'kick',
+      steps: [0],
+    }));
+    const newLayer = { id: 'new', userName: 'new-viewer', instrument: 'hat', steps: [1] };
+    const result = getLayerTransitions(oldLayers, [...oldLayers.slice(1), newLayer]);
+    expect(result.joined).toEqual([newLayer]);
+    expect(result.removed).toEqual([oldLayers[0]]);
+    expect(result.replacements).toEqual([{ from: oldLayers[0], to: newLayer }]);
+  });
+
+  it('scales hit animation duration to tempo while keeping it bounded', () => {
+    expect(instrumentHitDuration('kick', 120)).toBe(225);
+    expect(instrumentHitDuration('bass', 60)).toBe(650);
+    expect(instrumentHitDuration('hat', 300)).toBe(80);
   });
 });

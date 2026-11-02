@@ -37,6 +37,11 @@ export function connectOverlaySocket(
 
   connect();
   return {
+    send(event) {
+      if (socket?.readyState !== WebSocket.OPEN) return false;
+      socket.send(JSON.stringify(event));
+      return true;
+    },
     close() {
       stopped = true;
       clearTimeout(retryTimer);

@@ -15,15 +15,23 @@ let tempo = initial.tempo;
 let key = initial.key;
 let scale = initial.scale;
 const engine = new AudioEngine();
+let liveSocket = null;
 const scheduler = new LookaheadScheduler({
   engine,
   getLayers: () => layers,
   getTempo: () => tempo,
-  onStep: (step) => {
-    view.showBeat(step);
-    view.setCaption(layers, step);
+  onStep: (step, audioTime) => {
+    const delayMs = Math.max(0, (audioTime - engine.context.currentTime) * 1000);
+    setTimeout(() => {
+      view.showBeat(step);
+      view.setCaption(layers, step);
+    }, delayMs);
+    liveSocket?.send({ type: 'beat', step, delayMs });
   },
-  onLayerHit: (layer) => view.showLayerHit(layer),
+  onLayerHit: (layer, step) => {
+    const delayMs = Math.max(0, (scheduler.nextTime - engine.context.currentTime) * 1000);
+    setTimeout(() => view.showLayerHit(layer, step, tempo), delayMs);
+  },
 });
 const drop = new DropSequence({
   engine,
@@ -31,9 +39,12 @@ const drop = new DropSequence({
   title: document.querySelector('#drop .burst'),
   credits: document.querySelector('#drop .credits'),
   names: document.querySelector('#names'),
+  panel: document.querySelector('.jam-panel'),
+  stage: document.querySelector('#stage'),
 });
 
 view.setMetadata(initial);
+view.setTempo(tempo);
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 let reducedMotionPreference = Boolean(initial.reducedMotion);
 const applyReducedMotion = () => {
@@ -58,12 +69,12 @@ const showStartButton = () => {
 showStartButton();
 engine.context.addEventListener('statechange', showStartButton);
 
-connectOverlaySocket(
+liveSocket = connectOverlaySocket(
   (message) => {
     if (message.type === 'layer') {
       layers = message.layers;
       scheduler.addLayer(message.layer);
-      view.renderLayers(layers);
+      view.renderLayers(layers, true);
     } else if (message.type === 'reset') {
       layers = message.layers ?? [];
       scheduler.reset();
@@ -76,6 +87,7 @@ connectOverlaySocket(
       applyReducedMotion();
       engine.setVolume(message.volume);
       view.setMetadata(message);
+      view.setTempo(tempo);
     } else if (message.type === 'drop') {
       drop.play(
         message.contributors ?? [],
@@ -106,6 +118,7 @@ connectOverlaySocket(
       applyReducedMotion();
       engine.setVolume(current.volume);
       view.setMetadata(current);
+      view.setTempo(tempo);
       view.setConnection(current.connected, current.login ?? '');
       scheduler.reset();
       view.renderLayers(layers);

@@ -78,7 +78,7 @@
   --art-fill: #00d2ff;
 }
 .art-bass {
-  overflow: hidden;
+  overflow: visible;
   border: 8px solid #000;
   border-radius: 42% 58% 48% 52% / 57% 42% 58% 43%;
   background: repeating-radial-gradient(circle at 50% 50%, #73ff4a 0 7px, #000 8px 11px);

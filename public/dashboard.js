@@ -1,7 +1,13 @@
 import { renderSong } from './audio/synth.js';
 import { encodeWav } from './wav.js';
 import { connectOverlaySocket } from './socket.js';
-import { emptySlotCommand, viewerNameLabel } from './overlay-view.js';
+import {
+  createInstrumentArt,
+  emptySlotCommand,
+  getLayerTransitions,
+  instrumentHitDuration,
+  viewerNameLabel,
+} from './overlay-view.js';
 
 const $ = (selector) => document.querySelector(selector);
 const page = document.body.dataset.page;
@@ -18,6 +24,8 @@ let config = null;
 let creditsUrl = null;
 let isRendering = false;
 let activityEntries = [];
+let previousLayers = [];
+let countTimer = null;
 
 function renderShell() {
   sidebar.innerHTML = `
@@ -114,6 +122,18 @@ function renderBand(layers = []) {
   const count = $('#bandCount');
   if (!count) return;
   count.textContent = `${layers.length}/8`;
+  count.classList.toggle('one-away', layers.length === 7);
+  if (
+    count.dataset.previous !== undefined &&
+    count.dataset.previous !== String(layers.length)
+  ) {
+    clearTimeout(countTimer);
+    count.classList.remove('count-pop');
+    void count.offsetWidth;
+    count.classList.add('count-pop');
+    countTimer = setTimeout(() => count.classList.remove('count-pop'), 380);
+  }
+  count.dataset.previous = String(layers.length);
   $('#topLayerCount').textContent = String(layers.length);
   const empty = $('#bandEmpty');
   empty.classList.toggle('hidden', layers.length > 0);
@@ -132,9 +152,67 @@ function renderBand(layers = []) {
     const color = /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(layer.color)
       ? layer.color
       : '#fff23a';
-    return `<div class="dashboard-band-slot" style="--disc-tint:${color}" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="instrument-art art-${escapeAttribute(layer.instrument)}"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
+    return `<div class="dashboard-band-slot" data-id="${escapeAttribute(layer.id)}" style="--disc-tint:${color};--slot-index:${index};--idle-phase:${index * -0.41}s" aria-label="${escapeAttribute(layer.userName)}, ${escapeAttribute(layer.instrument)} layer"><div class="instrument-art art-${escapeAttribute(layer.instrument)}"></div>${label ? `<span class="viewer-name">${escapeHtml(label)}</span>` : ''}<span class="dashboard-instrument">${escapeHtml(layer.instrument)}</span></div>`;
   });
-  $('#dashboardBand').innerHTML = slots.join('');
+  const band = $('#dashboardBand');
+  const transitions = getLayerTransitions(previousLayers, layers);
+  const oldSlots = new Map(
+    [...band.children]
+      .filter((slot) => slot.dataset.id)
+      .map((slot) => [slot.dataset.id, { slot, rect: slot.getBoundingClientRect() }]),
+  );
+  const oldBandRect = band.getBoundingClientRect();
+  band.innerHTML = slots.join('');
+  for (const slot of band.querySelectorAll('.dashboard-band-slot[data-id]')) {
+    const layer = layers.find((candidate) => candidate.id === slot.dataset.id);
+    slot
+      .querySelector('.instrument-art')
+      .replaceWith(createInstrumentArt(layer.instrument));
+    if (transitions.joined.some((candidate) => candidate.id === layer.id)) {
+      slot.classList.add('joining');
+      if (transitions.replacements.some((pair) => pair.to.id === layer.id))
+        slot.classList.add('replacement-join');
+      slot.querySelector('.viewer-name')?.classList.add('chip-joining');
+    }
+  }
+  for (const removed of transitions.removed) {
+    const old = oldSlots.get(removed.id);
+    if (!old) continue;
+    const exit = old.slot.cloneNode(true);
+    const oldRect = old.rect;
+    exit.className = 'dashboard-band-slot exit-slot';
+    exit.removeAttribute('data-id');
+    exit.setAttribute('aria-hidden', 'true');
+    exit.style.left = `${oldRect.left - oldBandRect.left}px`;
+    exit.style.top = `${oldRect.top - oldBandRect.top}px`;
+    exit.style.width = `${oldRect.width}px`;
+    band.append(exit);
+    setTimeout(() => exit.remove(), 210);
+  }
+  previousLayers = [...layers];
+}
+
+function animateDashboardBeat(step, delayMs = 0) {
+  if (page !== 'live' || !config) return;
+  setTimeout(
+    () => {
+      for (const layer of config.layers ?? []) {
+        if (!layer.steps.includes(step)) continue;
+        const slot = $('#dashboardBand').querySelector(
+          `[data-id="${CSS.escape(layer.id)}"]`,
+        );
+        if (!slot) continue;
+        const hitClass = `hit-${layer.instrument}`;
+        const duration = instrumentHitDuration(layer.instrument, config.tempo);
+        slot.classList.remove('hit', hitClass);
+        void slot.offsetWidth;
+        slot.style.setProperty('--hit-duration', `${duration}ms`);
+        slot.classList.add('hit', hitClass);
+        setTimeout(() => slot.classList.remove('hit', hitClass), duration);
+      }
+    },
+    Math.max(0, Math.min(2000, delayMs)),
+  );
 }
 
 function escapeHtml(value) {
@@ -217,6 +295,11 @@ function populateSettings() {
   $('#tempo').value = config.tempo;
   $('#volume').value = Math.round(config.volume * 100);
   $('#reducedMotion').checked = Boolean(config.reducedMotion);
+  document.body.classList.toggle(
+    'reduced',
+    Boolean(config.reducedMotion) ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
   updateSliderLabels();
 }
 
@@ -419,10 +502,17 @@ async function initialize() {
         updateExportState();
       } else if (event.type === 'settings') {
         config = { ...config, ...event };
+        document.body.classList.toggle(
+          'reduced',
+          Boolean(config.reducedMotion) ||
+            matchMedia('(prefers-reduced-motion: reduce)').matches,
+        );
         if ($('#key')) populateSettings();
         if ($('#liveSongInfo')) renderBand(config.layers);
       } else if (event.type === 'activity') {
         receiveActivity(event.activity);
+      } else if (event.type === 'beat') {
+        animateDashboardBeat(Number(event.step), Number(event.delayMs));
       } else if (
         event.type === 'notice' &&
         (String(event.text).startsWith('Clip ') ||

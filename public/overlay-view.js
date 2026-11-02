@@ -13,6 +13,51 @@ export function emptySlotCommand(index) {
   return EMPTY_SLOT_COMMANDS[index % EMPTY_SLOT_COMMANDS.length];
 }
 
+export function getLayerTransitions(previousLayers, nextLayers) {
+  const nextIds = new Set(nextLayers.map((layer) => layer.id));
+  const previousIds = new Set(previousLayers.map((layer) => layer.id));
+  const joined = nextLayers.filter((layer) => !previousIds.has(layer.id));
+  const removed = previousLayers.filter((layer) => !nextIds.has(layer.id));
+  const replacements = joined
+    .slice(0, removed.length)
+    .map((layer, index) => ({ from: removed[index], to: layer }));
+  return { joined, removed, replacements };
+}
+
+export function instrumentHitDuration(instrument, tempo) {
+  const steps = { kick: 1.8, snare: 1.3, hat: 0.8, bass: 2.6, melody: 2, vibe: 2 };
+  const stepMs = 15_000 / tempo;
+  return Math.round(Math.min(650, Math.max(80, stepMs * (steps[instrument] ?? 1.6))));
+}
+
+export function createInstrumentArt(instrument) {
+  const art = document.createElement('div');
+  art.className = `instrument-art art-${INSTRUMENTS[instrument] ?? 'vibe'}`;
+  art.setAttribute('aria-hidden', 'true');
+  if (instrument === 'kick') {
+    art.append(makeArtPart('art-shockwave'));
+  } else if (instrument === 'bass') {
+    art.append(
+      makeArtPart('art-ripple ripple-one'),
+      makeArtPart('art-ripple ripple-two'),
+    );
+  } else if (instrument === 'melody') {
+    for (let petal = 0; petal < 5; petal += 1) {
+      const part = makeArtPart('art-petal');
+      part.style.setProperty('--petal-index', String(petal));
+      art.append(part);
+    }
+    art.append(makeArtPart('art-flower-core'));
+  }
+  return art;
+}
+
+function makeArtPart(className) {
+  const part = document.createElement('span');
+  part.className = className;
+  return part;
+}
+
 export function viewerNameLabel(layers, layer, index) {
   const viewerKey = layer.userId || layer.userName;
   const viewerLayers = layers.filter(
@@ -60,6 +105,10 @@ export class OverlayView {
     this.lastFlashAt = -Infinity;
     this.reducedMotion = false;
     this.noticeTimer = null;
+    this.hitTimers = new WeakMap();
+    this.flashTimer = null;
+    this.countTimer = null;
+    this.currentLayers = [];
 
     for (let index = 0; index < 16; index += 1) {
       const cell = document.createElement('div');
@@ -90,7 +139,16 @@ export class OverlayView {
     button.onclick = onStart;
   }
 
-  renderLayers(layers) {
+  renderLayers(layers, animateChanges = false) {
+    const transitions = animateChanges
+      ? getLayerTransitions(this.currentLayers, layers)
+      : { joined: [], removed: [], replacements: [] };
+    const oldSlots = new Map(
+      [...this.band.children]
+        .filter((slot) => !slot.classList.contains('exit-slot') && slot.dataset.id)
+        .map((slot) => [slot.dataset.id, { slot, rect: slot.getBoundingClientRect() }]),
+    );
+    const oldBandRect = this.band.getBoundingClientRect();
     const counts = new Map();
     for (const layer of layers) {
       counts.set(layer.userName, (counts.get(layer.userName) ?? 0) + 1);
@@ -98,7 +156,17 @@ export class OverlayView {
     const leader = [...counts.entries()].sort(
       (left, right) => right[1] - left[1],
     )[0]?.[0];
-    document.querySelector('#count').textContent = `${layers.length}/8`;
+    const count = document.querySelector('#count');
+    count.textContent = `${layers.length}/8`;
+    count.classList.toggle('one-away', layers.length === 7);
+    if (this.lastCount !== undefined && this.lastCount !== layers.length) {
+      clearTimeout(this.countTimer);
+      count.classList.remove('count-pop');
+      void count.offsetWidth;
+      count.classList.add('count-pop');
+      this.countTimer = setTimeout(() => count.classList.remove('count-pop'), 380);
+    }
+    this.lastCount = layers.length;
     document.querySelector('#leader').textContent = leader ? `[leader] ${leader}` : '';
     this.renderGrid(layers);
 
@@ -114,7 +182,9 @@ export class OverlayView {
         );
         const emptyDisc = document.createElement('div');
         emptyDisc.className = 'empty-disc';
-        emptyDisc.textContent = command;
+        const instruction = document.createElement('span');
+        instruction.textContent = command;
+        emptyDisc.append(instruction);
         emptySlot.append(emptyDisc);
         return emptySlot;
       }
@@ -122,17 +192,24 @@ export class OverlayView {
       const slot = document.createElement('div');
       slot.className = 'band-slot band-member';
       slot.dataset.id = layer.id;
+      slot.style.setProperty('--slot-index', String(index));
+      slot.style.setProperty('--idle-phase', `${index * -0.41}s`);
       slot.style.setProperty('--disc-tint', safeColor(layer.color));
       const instrument = INSTRUMENTS[layer.instrument] ?? 'sound';
-      const art = document.createElement('div');
-      art.className = `instrument-art art-${instrument}`;
-      art.setAttribute('aria-hidden', 'true');
+      const art = createInstrumentArt(instrument);
+      const joined = transitions.joined.some((candidate) => candidate.id === layer.id);
+      if (joined) {
+        slot.classList.add('joining');
+        const replaced = transitions.replacements.some((pair) => pair.to.id === layer.id);
+        if (replaced) slot.classList.add('replacement-join');
+      }
       slot.setAttribute('aria-label', `${layer.userName}, ${instrument} layer`);
       const label = viewerNameLabel(layers, layer, index);
       const name = label ? document.createElement('span') : null;
       if (name) {
         name.className = 'viewer-name';
         name.textContent = label;
+        if (joined) name.classList.add('chip-joining');
       }
       const instrumentLabel = document.createElement('span');
       instrumentLabel.className = 'instrument-label';
@@ -141,6 +218,22 @@ export class OverlayView {
       return slot;
     });
     this.band.replaceChildren(...slots);
+    for (const removed of transitions.removed) {
+      const old = oldSlots.get(removed.id);
+      if (!old) continue;
+      const exit = old.slot.cloneNode(true);
+      const oldRect = old.rect;
+      exit.className = 'band-slot exit-slot';
+      exit.removeAttribute('data-id');
+      exit.setAttribute('aria-hidden', 'true');
+      exit.style.left = `${oldRect.left - oldBandRect.left}px`;
+      exit.style.top = `${oldRect.top - oldBandRect.top}px`;
+      exit.style.width = `${oldRect.width}px`;
+      exit.style.setProperty('--exit-duration', '180ms');
+      this.band.append(exit);
+      setTimeout(() => exit.remove(), 210);
+    }
+    this.currentLayers = [...layers];
   }
 
   renderGrid(layers) {
@@ -159,21 +252,41 @@ export class OverlayView {
   showBeat(step) {
     for (const cell of this.grid.children) {
       cell.classList.toggle('active', Number(cell.dataset.i) === step);
+      cell.classList.remove('played');
+    }
+    const current = this.grid.children[step];
+    if (current?.dataset.layers !== '0') {
+      current?.classList.add('played');
+      setTimeout(() => current?.classList.remove('played'), 110);
     }
   }
 
-  showLayerHit(layer) {
+  setTempo(tempo) {
+    this.grid.style.setProperty('--step-ms', `${15_000 / tempo}ms`);
+  }
+
+  showLayerHit(layer, _step, tempo = 120) {
     const slot = this.band.querySelector(`[data-id="${CSS.escape(layer.id)}"]`);
     if (slot) {
-      slot.classList.add('hit');
-      setTimeout(() => slot.classList.remove('hit'), 260);
+      const instrument = INSTRUMENTS[layer.instrument] ?? 'vibe';
+      clearTimeout(this.hitTimers.get(slot));
+      slot.classList.remove('hit', `hit-${instrument}`);
+      void slot.offsetWidth;
+      const duration = instrumentHitDuration(instrument, tempo);
+      slot.style.setProperty('--hit-duration', `${duration}ms`);
+      slot.classList.add('hit', `hit-${instrument}`);
+      this.hitTimers.set(
+        slot,
+        setTimeout(() => slot.classList.remove('hit', `hit-${instrument}`), duration),
+      );
     }
     const now = performance.now();
     if (!this.reducedMotion && now - this.lastFlashAt >= 334) {
       this.lastFlashAt = now;
       const flash = document.querySelector('#flash');
-      flash.style.opacity = '0.22';
-      setTimeout(() => (flash.style.opacity = '0'), 70);
+      clearTimeout(this.flashTimer);
+      flash.style.opacity = '0.78';
+      this.flashTimer = setTimeout(() => (flash.style.opacity = '0'), 110);
     }
   }
 

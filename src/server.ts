@@ -55,6 +55,34 @@ app.get('/fonts/ibm-plex-mono-400.woff2', (_request, response) =>
 
 const server = createServer(app);
 const webSockets = new WebSocketServer({ server, path: '/live' });
+webSockets.on('connection', (client) => {
+  client.on('message', (raw) => {
+    try {
+      const event = JSON.parse(raw.toString()) as {
+        type?: string;
+        step?: number;
+        delayMs?: number;
+      };
+      if (
+        event.type !== 'beat' ||
+        !Number.isInteger(event.step) ||
+        (event.step ?? -1) < 0 ||
+        (event.step ?? 16) > 15 ||
+        !Number.isFinite(event.delayMs) ||
+        (event.delayMs ?? -1) < 0 ||
+        (event.delayMs ?? 2001) > 2000
+      )
+        return;
+      const message = JSON.stringify(event);
+      for (const socket of webSockets.clients) {
+        if (socket !== client && socket.readyState === WebSocket.OPEN)
+          socket.send(message);
+      }
+    } catch {
+      // Ignore malformed client messages.
+    }
+  });
+});
 const song = new Song();
 let account: ConnectedAccount | null = null;
 let eventSub: EventSubClient | null = null;

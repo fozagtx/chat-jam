@@ -324,6 +324,249 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dashboard-band {
+  position: relative;
+}
+.dashboard-band-slot.exit-slot {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  animation: spin-out 180ms ease-in forwards;
+}
+.dashboard-empty-disc {
+  position: relative;
+  border: 0;
+}
+.dashboard-empty-disc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px dashed rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  animation: wait-turn 20s linear infinite;
+}
+.dashboard-band-slot {
+  --idle-phase: 0s;
+}
+.dashboard-band-slot .instrument-art {
+  animation: art-float 3.4s ease-in-out var(--idle-phase) infinite;
+}
+.dashboard-band-slot.joining .instrument-art {
+  animation: sticker-slap 460ms cubic-bezier(0.18, 1.5, 0.36, 1) both;
+}
+.dashboard-band-slot.replacement-join .instrument-art {
+  animation-delay: 180ms;
+}
+.dashboard-band-slot .viewer-name.chip-joining {
+  animation: chip-drop 460ms cubic-bezier(0.18, 1.5, 0.36, 1) both;
+}
+.dashboard-band-slot.hit-kick .instrument-art {
+  animation: kick-punch var(--hit-duration, 240ms) cubic-bezier(0.18, 1.55, 0.34, 1);
+}
+.dashboard-band-slot.hit-snare .instrument-art {
+  animation: snare-snap var(--hit-duration, 180ms) cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+.dashboard-band-slot.hit-hat .instrument-art {
+  animation: hat-shake var(--hit-duration, 130ms) ease-in-out;
+}
+.dashboard-band-slot.hit-bass .instrument-art {
+  animation: bass-thump var(--hit-duration, 350ms) cubic-bezier(0.2, 1.3, 0.35, 1);
+}
+.dashboard-band-slot.hit-melody .instrument-art {
+  animation: melody-pop var(--hit-duration, 280ms) cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+.dashboard-band-slot.hit-melody .art-petal {
+  animation: petal-bloom var(--hit-duration, 280ms) cubic-bezier(0.2, 1.4, 0.35, 1) both;
+}
+.dashboard-band-slot.hit-bass .art-ripple {
+  animation: ripple var(--hit-duration, 350ms) ease-out both;
+}
+.dashboard-band-slot.hit-bass .ripple-two {
+  animation-delay: 70ms;
+}
+.dashboard-band-slot.hit-kick .art-shockwave {
+  animation: shockwave var(--hit-duration, 240ms) ease-out;
+}
+.dashboard-band-slot.hit-vibe .instrument-art {
+  animation: kick-punch var(--hit-duration, 280ms) cubic-bezier(0.18, 1.55, 0.34, 1);
+}
+.count-pill.one-away {
+  animation: one-away 800ms ease-in-out infinite alternate;
+}
+.count-pill.count-pop {
+  animation: count-pop 360ms cubic-bezier(0.2, 1.5, 0.35, 1);
+}
+@keyframes art-float {
+  50% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+@keyframes wait-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sticker-slap {
+  0% {
+    transform: scale(0) rotate(-20deg);
+  }
+  72% {
+    transform: scale(1.24) rotate(9deg);
+  }
+  88% {
+    transform: scale(0.94) rotate(-5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes chip-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) rotate(12deg) scale(0.5);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(3px) rotate(-6deg) scale(1.12);
+  }
+  100% {
+    transform: translateY(0) rotate(-2deg) scale(1);
+  }
+}
+@keyframes spin-out {
+  to {
+    opacity: 0;
+    transform: rotate(170deg) scale(0.05);
+  }
+}
+@keyframes kick-punch {
+  0% {
+    transform: scale(1);
+  }
+  28% {
+    transform: scale(0.78) rotate(-9deg);
+  }
+  58% {
+    transform: scale(1.3) rotate(5deg);
+  }
+  78% {
+    transform: scale(0.94) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes shockwave {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+@keyframes snare-snap {
+  0% {
+    transform: rotate(0) scale(1);
+  }
+  38% {
+    transform: rotate(27deg) scale(1.22);
+  }
+  72% {
+    transform: rotate(-13deg) scale(0.96);
+  }
+  100% {
+    transform: rotate(0) scale(1);
+  }
+}
+@keyframes hat-shake {
+  0%,
+  100% {
+    transform: translate(0) rotate(0);
+  }
+  20% {
+    transform: translate(-4px, 2px) rotate(-9deg);
+  }
+  40% {
+    transform: translate(4px, -2px) rotate(8deg);
+  }
+  60% {
+    transform: translate(-3px, -1px) rotate(-6deg);
+  }
+  80% {
+    transform: translate(2px, 1px) rotate(4deg);
+  }
+}
+@keyframes bass-thump {
+  35% {
+    transform: scale(1.22);
+  }
+  68% {
+    transform: scale(0.94);
+  }
+}
+@keyframes ripple {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@keyframes melody-pop {
+  40% {
+    transform: scale(1.14) rotate(8deg);
+  }
+  75% {
+    transform: scale(0.94) rotate(-3deg);
+  }
+}
+@keyframes petal-bloom {
+  0% {
+    opacity: 0.4;
+    transform: rotate(calc(var(--petal-index) * 72deg)) scale(0.25);
+  }
+  65% {
+    opacity: 1;
+    transform: rotate(calc(var(--petal-index) * 72deg)) scale(1.25);
+  }
+  100% {
+    transform: rotate(calc(var(--petal-index) * 72deg)) scale(1);
+  }
+}
+@keyframes count-pop {
+  45% {
+    transform: scale(1.3) rotate(-5deg);
+  }
+}
+@keyframes one-away {
+  to {
+    box-shadow: 0 0 0 5px var(--pink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+body.reduced .dashboard-band-slot .instrument-art,
+body.reduced .dashboard-empty-disc::before,
+body.reduced .count-pill {
+  animation: none !important;
+  transition: none !important;
+}
+body.reduced *,
+body.reduced *::before,
+body.reduced *::after {
+  animation: none !important;
+  transition: none !important;
+}
 .band-foot {
   display: flex;
   justify-content: space-between;
